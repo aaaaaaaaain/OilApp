@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link rel="apple-touch-icon" href="fuel.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="油耗記錄">
+    <title>油耗 App</title>
+
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+
+    <!-- ?v= 版本號：改版後手機（尤其是 iOS 主畫面捷徑）才不會繼續用舊的快取檔 -->
+    <link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+    <h1>油耗紀錄</h1>
+
+    <div class="stats-grid">
+        <div class="stat-card"><strong id="avgVal">0.00</strong><span>平均 km/L</span></div>
+        <div class="stat-card"><strong id="countVal">0</strong><span>總筆數</span></div>
+        <div class="stat-card"><strong id="lowVal">--</strong><span>歷史新低 km/L</span></div>
+    </div>
+
+    <div class="segmented" id="mainTabs">
+        <button type="button" class="segment active" onclick="tab(0)">新增</button>
+        <button type="button" class="segment" onclick="tab(1)">圖表</button>
+        <button type="button" class="segment" onclick="tab(2)">歷史油耗</button>
+        <button type="button" class="segment" onclick="tab(3)">載具</button>
+    </div>
+
+    <!-- 新增 -->
+    <div id="s0" class="sec active">
+        <div class="segmented mode-switch">
+            <button type="button" class="segment active" id="mode0" onclick="setMode('trip')">直接輸入里程</button>
+            <button type="button" class="segment" id="mode1" onclick="setMode('odo')">總公里數計算</button>
+        </div>
+
+        <div class="ios-list">
+            <input type="hidden" id="editIdx" value="-1">
+            <div class="ios-item"><label for="date">日期</label><input type="date" id="date" onchange="updateOdoHint()"></div>
+            <div class="ios-item"><label for="time">時間</label><input type="time" id="time" onchange="updateOdoHint()"></div>
+            <div class="ios-item" id="rowDistance"><label for="distance">里程 (km)</label><input type="number" id="distance" placeholder="0.0" inputmode="decimal" step="0.1"></div>
+            <div class="ios-item" id="rowOdo" style="display:none"><label for="odo">總公里數 (km)</label><input type="number" id="odo" placeholder="0.0" inputmode="decimal" step="0.1" oninput="updateOdoHint()"></div>
+            <div class="ios-item"><label for="liters">公升 (L)</label><input type="number" id="liters" placeholder="0.00" inputmode="decimal" step="0.01" oninput="updateOdoHint()"></div>
+        </div>
+        <div id="odoHint" class="mode-hint" style="display:none"></div>
+        <button class="btn" onclick="save()">儲存數據</button>
+        <button class="secondary-btn" id="cancelEditBtn" style="display:none" onclick="cancelEdit()">取消編輯</button>
+
+        <div id="inlineBarcode" class="barcode-section" style="display:none">
+            <div class="barcode-card">
+                <svg id="inlineBarcodeImg"></svg>
+                <div class="carrier-code-display" id="inlineCodeDisplay"></div>
+                <div class="barcode-hint">請對準掃描器，保持螢幕亮度最高</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 圖表 -->
+    <div id="s1" class="sec">
+        <div class="stat-card">
+            <canvas id="chart"></canvas>
+        </div>
+    </div>
+
+    <!-- 歷史油耗 -->
+    <div id="s2" class="sec">
+        <div class="ios-list" id="list"></div>
+        <button onclick="exportXLS()" class="secondary-btn">📥 導出 Excel</button>
+        <button onclick="clearAll()" class="danger-btn">重置資料</button>
+    </div>
+
+    <!-- 載具 -->
+    <div id="s3" class="sec">
+        <div class="ios-list">
+            <div class="ios-item">
+                <label for="carrierInput">載具代碼</label>
+                <div class="carrier-input-wrap">
+                    <span class="carrier-prefix">/</span>
+                    <input type="text" id="carrierInput" maxlength="7" placeholder="ABC1234"
+                           inputmode="text" autocomplete="off" autocorrect="off"
+                           autocapitalize="characters" spellcheck="false"
+                           oninput="this.value=this.value.toUpperCase()">
+                </div>
+            </div>
+        </div>
+        <button class="btn" onclick="generateBarcode()">顯示條碼</button>
+
+        <div id="barcodeSection" class="barcode-section" style="display:none">
+            <div class="barcode-card">
+                <svg id="carrierBarcode"></svg>
+                <div class="carrier-code-display" id="carrierCodeDisplay"></div>
+                <div class="barcode-hint">請對準掃描器，保持螢幕亮度最高</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js?v=1"></script>
+</body>
+</html>
