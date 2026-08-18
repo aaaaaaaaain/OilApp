@@ -307,23 +307,27 @@ function render() {
             daysHtml = `<span class="days-tag">${days}天</span>`;
         }
 
-        const odoHtml = r.odo != null ? `<span class="odo-tag">總 ${r.odo}km</span>` : '';
-        const baseHtml = r.base ? '<span class="odo-tag">起始</span>' : '';
+        const odoHtml = r.odo != null ? `<span class="tag">總 ${r.odo}km</span>` : '';
+        const baseHtml = r.base ? '<span class="tag">起始</span>' : '';
         const kmText = r.km != null ? `${r.km}km / ${r.l}L` : `-- / ${r.l}L`;
+        // 金額與單價併進同一行文字，不再做成標籤，右欄才有空間放編輯／刪除
         const costText = hasCost(r) ? ` · ${money(r.cost)}` : '';
-        const priceHtml = (hasCost(r) && r.l > 0) ? `<span class="odo-tag">${(r.cost / r.l).toFixed(2)}元/L</span>` : '';
+        const priceText = (hasCost(r) && r.l > 0) ? ` · ${(r.cost / r.l).toFixed(2)}/L` : '';
         const consText = typeof r.cons === 'number' ? r.cons.toFixed(2) : '--';
 
         html.push(`
             <div class="record-row">
-                <div>
-                    <b>${r.d}<span class="row-time">${r.t || ''}</span></b>${daysHtml}<br>
-                    <span class="row-sub">${kmText}${costText}</span>${priceHtml}${odoHtml}${baseHtml}
+                <div class="record-main">
+                    <div class="record-head"><b>${r.d}</b><span class="row-time">${r.t || ''}</span>${daysHtml}</div>
+                    <div class="row-sub">${kmText}${costText}${priceText}</div>
+                    <div class="row-tags">${odoHtml}${baseHtml}</div>
                 </div>
-                <div style="text-align:right">
-                    <span class="record-val">${consText}</span>${diffHtml}<br>
-                    <span class="link-edit" onclick="editRecord(${i})">編輯</span>
-                    <span class="link-del" onclick="del(${i})">刪除</span>
+                <div class="record-side">
+                    <div class="record-cons">${diffHtml}<span class="record-val">${consText}</span></div>
+                    <div class="record-actions">
+                        <span class="link-edit" onclick="editRecord(${i})">編輯</span>
+                        <span class="link-del" onclick="del(${i})">刪除</span>
+                    </div>
                 </div>
             </div>`);
     }

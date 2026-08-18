@@ -89,7 +89,7 @@ h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1p
 }
 .mode-hint b { color: var(--ios-blue); }
 .mode-hint .warn { color: var(--ios-red); }
-.odo-tag { font-size: 11px; color: var(--ios-gray); background: #7676801f; padding: 2px 6px; border-radius: 4px; margin-left: 5px; }
+.tag { font-size: 11px; color: var(--ios-gray); background: #7676801f; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
 
 /* iOS 清單與輸入 */
 .ios-list { background: var(--ios-card); border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
@@ -104,16 +104,23 @@ h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1p
 .secondary-btn { color: var(--ios-blue); background: none; border: none; width: 100%; padding: 20px; font-size: 16px; cursor: pointer; font-family: inherit; }
 .danger-btn { color: var(--ios-red); background: none; border: none; width: 100%; font-size: 12px; margin-bottom: 30px; cursor: pointer; font-family: inherit; }
 
-/* 記錄列 */
-.record-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 0.5px solid var(--ios-sep); }
+/* 記錄列：左欄可壓縮換行，右欄固定不換行，避免「刪除」被擠成兩行 */
+.record-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 12px 16px; border-bottom: 0.5px solid var(--ios-sep); }
 .record-row:last-child { border-bottom: none; }
+.record-main { flex: 1; min-width: 0; }
+.record-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; font-weight: 700; }
+.record-side { flex-shrink: 0; text-align: right; white-space: nowrap; }
+.record-cons { display: flex; align-items: baseline; justify-content: flex-end; gap: 4px; }
+.record-actions { margin-top: 2px; }
 .record-val { font-size: 20px; font-weight: 700; color: var(--ios-blue); }
-.diff-tag { font-size: 12px; font-weight: 600; margin-left: 4px; }
+.diff-tag { font-size: 12px; font-weight: 600; }
 .diff-up { color: var(--ios-green); }
 .diff-down { color: var(--ios-red); }
-.days-tag { font-size: 11px; color: var(--ios-gray); background: #7676801f; padding: 2px 6px; border-radius: 4px; margin-left: 5px; }
-.row-sub { color: var(--ios-gray); font-size: 13px; }
-.row-time { color: var(--ios-gray); margin-left: 5px; font-size: 13px; }
+.days-tag { font-size: 11px; color: var(--ios-gray); background: #7676801f; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+.row-sub { display: block; color: var(--ios-gray); font-size: 13px; margin-top: 3px; }
+.row-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.row-tags:empty { display: none; }
+.row-time { color: var(--ios-gray); font-size: 13px; font-weight: 400; }
 .link-edit { color: var(--ios-blue); font-size: 13px; cursor: pointer; }
 .link-del { color: var(--ios-red); font-size: 13px; margin-left: 10px; cursor: pointer; }
 .empty { padding: 30px 16px; text-align: center; color: var(--ios-gray); font-size: 14px; }
