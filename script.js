@@ -2,12 +2,19 @@
 let records = JSON.parse(localStorage.getItem('fuelRecords') || '[]');
 let chart;
 let inputMode = localStorage.getItem('inputMode') || 'trip'; // trip = 直接輸入里程, odo = 總公里數相減
+let theme = localStorage.getItem('theme') || 'system';       // system = 跟隨系統, light = 淺色, dark = 深色
 
 const $ = id => document.getElementById(id);
 
+// 金額為選填，舊紀錄沒有 cost 欄位，一律視為沒填
+const hasCost = r => typeof r.cost === 'number' && !isNaN(r.cost) && r.cost > 0;
+const money = n => '$' + n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+const money2 = n => '$' + n.toFixed(2);
+const round2 = n => Number(n.toFixed(2));
+
 // 初始化：每步驟獨立包起來，CDN 載入失敗時只有該功能失效，不會整個卡住
 function init() {
-    const steps = [setCurrentTime, recalc, () => setMode(inputMode), render, initChart, loadSavedCarrier];
+    const steps = [setCurrentTime, () => applyTheme(theme), recalc, () => setMode(inputMode), render, loadSavedPrice, updateCostHint, initChart, loadSavedCarrier];
     steps.forEach(step => {
         try { step(); } catch (e) { console.error('初始化步驟失敗:', e); }
     });
@@ -24,6 +31,19 @@ function setCurrentTime() {
     const pad = n => String(n).padStart(2, '0');
     $('date').value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
     $('time').value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
+
+// 外觀：跟隨系統 / 淺色 / 深色
+function applyTheme(mode) {
+    theme = (mode === 'light' || mode === 'dark') ? mode : 'system';
+    localStorage.setItem('theme', theme);
+
+    if (theme === 'system') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', theme);
+
+    $('themeSystem').classList.toggle('active', theme === 'system');
+    $('themeLight').classList.toggle('active', theme === 'light');
+    $('themeDark').classList.toggle('active', theme === 'dark');
 }
 
 // 里程輸入模式：直接輸入單次里程，或輸入里程表讀數自動相減
@@ -86,6 +106,60 @@ function updateOdoHint() {
     hint.innerHTML = html;
 }
 
+// 依目前表單算出這筆的行駛里程，算不出來回傳 null
+function currentKm() {
+    if (inputMode === 'trip') {
+        const km = parseFloat($('distance').value);
+        return !isNaN(km) && km > 0 ? km : null;
+    }
+    const odo = parseFloat($('odo').value);
+    if (isNaN(odo)) return null;
+    const prev = prevOdoRecord($('date').value, $('time').value, parseInt($('editIdx').value, 10));
+    if (!prev) return odo > 0 ? Number(odo.toFixed(1)) : null;
+    return odo > prev.odo ? Number((odo - prev.odo).toFixed(1)) : null;
+}
+
+// 單價會記住上次填的，下次加油通常差不多，不用每次重打
+function loadSavedPrice() {
+    const saved = parseFloat(localStorage.getItem('unitPrice'));
+    if (!isNaN(saved) && saved > 0) $('price').value = saved;
+}
+
+// 單價 × 公升 = 金額。改哪一欄就補另外一欄，剛打的那欄不動
+function syncMoney(source) {
+    const ok = n => !isNaN(n) && n > 0;
+    const l = parseFloat($('liters').value);
+    const price = parseFloat($('price').value);
+    const cost = parseFloat($('cost').value);
+
+    if (source === 'cost') {
+        if (ok(cost) && ok(l)) $('price').value = round2(cost / l);
+    } else if (source === 'price') {
+        if (ok(price) && ok(l)) $('cost').value = round2(price * l);
+    } else {
+        // 改公升：有單價就用單價算金額，沒單價才用已填的金額回推單價
+        if (ok(l) && ok(price)) $('cost').value = round2(price * l);
+        else if (ok(l) && ok(cost)) $('price').value = round2(cost / l);
+    }
+
+    updateCostHint();
+}
+
+// 即時試算每公里成本
+function updateCostHint() {
+    const hint = $('costHint');
+    const cost = parseFloat($('cost').value);
+    const km = currentKm();
+
+    if (isNaN(cost) || cost <= 0 || !km) {
+        hint.style.display = 'none';
+        return;
+    }
+
+    hint.innerHTML = `每公里成本：<b>${(cost / km).toFixed(2)} 元/km</b>`;
+    hint.style.display = '';
+}
+
 // 依總公里數重算里程與油耗（新增、編輯、刪除後都要跑）
 function recalc() {
     let prevOdo = null;
@@ -111,6 +185,7 @@ function tab(i) {
     document.querySelectorAll('.sec').forEach((s, x) => s.classList.toggle('active', x === i));
     if (i === 1) updateChart();
     if (i === 0) { renderInlineBarcode(); updateOdoHint(); }
+    window.scrollTo(0, 0);
 }
 
 // 儲存
@@ -120,9 +195,18 @@ function save() {
     const l = parseFloat($('liters').value);
     const km = parseFloat($('distance').value);
     const odo = parseFloat($('odo').value);
+    const cost = parseFloat($('cost').value);
+    const price = parseFloat($('price').value);
     const idx = parseInt($('editIdx').value, 10);
 
     if (!d || !t || isNaN(l) || l <= 0) return alert('請正確輸入日期、時間與公升數');
+    if ($('cost').value.trim() !== '' && (isNaN(cost) || cost <= 0)) return alert('金額請填大於 0 的數字，或留空不填');
+    if ($('price').value.trim() !== '' && (isNaN(price) || price <= 0)) return alert('單價請填大於 0 的數字，或留空不填');
+
+    // 記住這次的單價，下次開 App 直接帶入
+    if (!isNaN(price) && price > 0) localStorage.setItem('unitPrice', price);
+
+    const costVal = (isNaN(cost) || cost <= 0) ? null : cost;
 
     let entry;
     if (inputMode === 'odo') {
@@ -130,10 +214,10 @@ function save() {
         const prev = prevOdoRecord(d, t, idx);
         if (prev && odo <= prev.odo) return alert(`總公里數必須大於上次的 ${prev.odo} km`);
         // km / cons 由 recalc() 依「現在總公里數 − 上次總公里數」算出
-        entry = { d, t, l, odo, km: null, cons: null };
+        entry = { d, t, l, cost: costVal, odo, km: null, cons: null };
     } else {
         if (isNaN(km) || km <= 0) return alert('請正確輸入里程');
-        entry = { d, t, l, km, cons: Number((km / l).toFixed(2)) };
+        entry = { d, t, l, cost: costVal, km, cons: Number((km / l).toFixed(2)) };
     }
 
     if (idx === -1) records.push(entry);
@@ -153,9 +237,13 @@ function resetForm() {
     $('liters').value = '';
     $('distance').value = '';
     $('odo').value = '';
+    $('cost').value = '';
+    $('price').value = '';
+    loadSavedPrice();
     $('cancelEditBtn').style.display = 'none';
     setCurrentTime();
     updateOdoHint();
+    updateCostHint();
 }
 
 function cancelEdit() {
@@ -169,6 +257,22 @@ function render() {
     $('avgVal').innerText = valid.length ? (valid.reduce((s, r) => s + r.cons, 0) / valid.length).toFixed(2) : '0.00';
     $('countVal').innerText = records.length;
     $('lowVal').innerText = valid.length ? Math.min(...valid.map(r => r.cons)).toFixed(2) : '--';
+
+    // 有填過金額才顯示這排，沒在記帳的人畫面不會多出三張空卡
+    const withCost = records.filter(hasCost);
+    $('costStats').style.display = withCost.length ? '' : 'none';
+    if (withCost.length) {
+        const totalCost = withCost.reduce((s, r) => s + r.cost, 0);
+        const costLiters = withCost.reduce((s, r) => s + (r.l || 0), 0);
+        // 每公里成本只算「金額與里程都有」的紀錄；起始筆的里程是里程表讀數，會把數字壓爛，排除
+        const both = withCost.filter(r => r.km != null && !isNaN(r.km) && !r.base);
+        const bothCost = both.reduce((s, r) => s + r.cost, 0);
+        const bothKm = both.reduce((s, r) => s + r.km, 0);
+
+        $('costTotalVal').innerText = money(totalCost);
+        $('pricePerLVal').innerText = costLiters ? (totalCost / costLiters).toFixed(2) : '--';
+        $('costPerKmVal').innerText = bothKm ? money2(bothCost / bothKm) : '--';
+    }
 
     const container = $('list');
     container.innerHTML = '';
@@ -206,13 +310,15 @@ function render() {
         const odoHtml = r.odo != null ? `<span class="odo-tag">總 ${r.odo}km</span>` : '';
         const baseHtml = r.base ? '<span class="odo-tag">起始</span>' : '';
         const kmText = r.km != null ? `${r.km}km / ${r.l}L` : `-- / ${r.l}L`;
+        const costText = hasCost(r) ? ` · ${money(r.cost)}` : '';
+        const priceHtml = (hasCost(r) && r.l > 0) ? `<span class="odo-tag">${(r.cost / r.l).toFixed(2)}元/L</span>` : '';
         const consText = typeof r.cons === 'number' ? r.cons.toFixed(2) : '--';
 
         html.push(`
             <div class="record-row">
                 <div>
                     <b>${r.d}<span class="row-time">${r.t || ''}</span></b>${daysHtml}<br>
-                    <span class="row-sub">${kmText}</span>${odoHtml}${baseHtml}
+                    <span class="row-sub">${kmText}${costText}</span>${priceHtml}${odoHtml}${baseHtml}
                 </div>
                 <div style="text-align:right">
                     <span class="record-val">${consText}</span>${diffHtml}<br>
@@ -230,6 +336,9 @@ function editRecord(i) {
     $('date').value = r.d;
     $('time').value = r.t || '00:00';
     $('liters').value = r.l;
+    $('cost').value = hasCost(r) ? r.cost : '';
+    $('price').value = (hasCost(r) && r.l > 0) ? round2(r.cost / r.l) : '';
+    if (!$('price').value) loadSavedPrice();
     $('editIdx').value = i;
     $('cancelEditBtn').style.display = '';
 
@@ -242,6 +351,7 @@ function editRecord(i) {
         $('odo').value = '';
         setMode('trip');
     }
+    updateCostHint();
     tab(0);
 }
 
@@ -283,8 +393,11 @@ function exportXLS() {
         '時間': r.t,
         '總公里數 (km)': r.odo != null ? r.odo : '',
         '加油公升 (L)': r.l,
+        '金額 (元)': hasCost(r) ? r.cost : '',
+        '單價 (元/L)': (hasCost(r) && r.l > 0) ? Number((r.cost / r.l).toFixed(2)) : '',
         '行駛里程 (km)': r.km != null ? r.km : '',
-        '當次油耗 (km/L)': typeof r.cons === 'number' ? r.cons : ''
+        '當次油耗 (km/L)': typeof r.cons === 'number' ? r.cons : '',
+        '每公里成本 (元/km)': (hasCost(r) && r.km) ? Number((r.cost / r.km).toFixed(2)) : ''
     }));
 
     // 只有算得出里程的紀錄才納入平均
@@ -294,13 +407,24 @@ function exportXLS() {
     const countedLiters = counted.reduce((s, r) => s + (r.l || 0), 0);
     const avgCons = countedLiters ? (totalKm / countedLiters).toFixed(2) : 0;
 
+    // 金額為選填，只把有填的紀錄納入統計
+    const withCost = records.filter(hasCost);
+    const totalCost = withCost.reduce((s, r) => s + r.cost, 0);
+    const costLiters = withCost.reduce((s, r) => s + (r.l || 0), 0);
+    const both = withCost.filter(r => r.km != null && !isNaN(r.km) && !r.base);
+    const bothCost = both.reduce((s, r) => s + r.cost, 0);
+    const bothKm = both.reduce((s, r) => s + r.km, 0);
+
     rows.push({
         '日期': '【總計統計】',
         '時間': '',
         '總公里數 (km)': '',
         '加油公升 (L)': Number(totalLiters.toFixed(2)),
+        '金額 (元)': withCost.length ? Number(totalCost.toFixed(2)) : '',
+        '單價 (元/L)': costLiters ? '平均:' + (totalCost / costLiters).toFixed(2) : '',
         '行駛里程 (km)': Number(totalKm.toFixed(1)),
-        '當次油耗 (km/L)': '總平均:' + avgCons
+        '當次油耗 (km/L)': '總平均:' + avgCons,
+        '每公里成本 (元/km)': bothKm ? '平均:' + (bothCost / bothKm).toFixed(2) : ''
     });
 
     const ws = XLSX.utils.json_to_sheet(rows);

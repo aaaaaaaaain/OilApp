@@ -7,16 +7,29 @@
     --ios-red: #FF3B30;
     --ios-green: #34C759;
     --ios-gray: #8E8E93;
+    color-scheme: light;
 }
 
+/* 跟隨系統：使用者沒手動指定淺色時才套深色 */
 @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
         --ios-bg: #000000;
         --ios-card: #1C1C1E;
         --ios-text: #FFFFFF;
         --ios-blue: #0A84FF;
         --ios-sep: #38383A;
+        color-scheme: dark;
     }
+}
+
+/* 手動選深色：系統是淺色也要吃到 */
+:root[data-theme="dark"] {
+    --ios-bg: #000000;
+    --ios-card: #1C1C1E;
+    --ios-text: #FFFFFF;
+    --ios-blue: #0A84FF;
+    --ios-sep: #38383A;
+    color-scheme: dark;
 }
 
 body {
@@ -33,11 +46,28 @@ input::-webkit-date-and-time-value { text-align: right; padding-right: 5px; }
 
 h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1px; }
 
+/* 標題列與右上角設定鈕 */
+.header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+.header h1 { margin-bottom: 0; }
+.gear-btn {
+    flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
+    background: var(--ios-card); border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    color: var(--ios-blue); font-size: 19px; line-height: 1; cursor: pointer;
+    font-family: inherit; -webkit-appearance: none; appearance: none;
+    touch-action: manipulation;
+}
+.gear-btn:active { opacity: 0.5; }
+
+/* 設定頁的分組標題 */
+.sec-title { font-size: 13px; font-weight: 600; color: var(--ios-gray); margin: 0 0 8px 4px; }
+
 /* 統計卡片 */
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 25px; }
 .stat-card { background: var(--ios-card); padding: 12px 8px; border-radius: 12px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 .stat-card strong { display: block; font-size: 20px; color: var(--ios-blue); }
 .stat-card span { font-size: 11px; color: var(--ios-gray); font-weight: 600; }
+/* 金額位數多，字級小一號才不會擠出卡片 */
+#costStats .stat-card strong { font-size: 16px; }
 
 /* 分段控制器 */
 .segmented { background: #7676801f; border-radius: 10px; padding: 2px; display: flex; margin-bottom: 25px; }
