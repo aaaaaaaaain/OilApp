@@ -263,14 +263,14 @@ function render() {
     $('costStats').style.display = withCost.length ? '' : 'none';
     if (withCost.length) {
         const totalCost = withCost.reduce((s, r) => s + r.cost, 0);
-        const costLiters = withCost.reduce((s, r) => s + (r.l || 0), 0);
         // 每公里成本只算「金額與里程都有」的紀錄；起始筆的里程是里程表讀數，會把數字壓爛，排除
         const both = withCost.filter(r => r.km != null && !isNaN(r.km) && !r.base);
         const bothCost = both.reduce((s, r) => s + r.cost, 0);
         const bothKm = both.reduce((s, r) => s + r.km, 0);
 
         $('costTotalVal').innerText = money(totalCost);
-        $('pricePerLVal').innerText = costLiters ? (totalCost / costLiters).toFixed(2) : '--';
+        // 平均花費＝每次加油平均花多少（單價在每一列都看得到，不用再放一張卡）
+        $('avgCostVal').innerText = money(round2(totalCost / withCost.length));
         $('costPerKmVal').innerText = bothKm ? money2(bothCost / bothKm) : '--';
     }
 
