@@ -22,7 +22,7 @@
     </script>
 
     <!-- ?v= 版本號：改版後手機（尤其是 iOS 主畫面捷徑）才不會繼續用舊的快取檔 -->
-    <link rel="stylesheet" href="style.css?v=11">
+    <link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
     <div class="header">
@@ -50,6 +50,14 @@
 
     <!-- 新增 -->
     <div id="s0" class="sec active">
+        <div id="inlineBarcode" class="barcode-section" style="display:none">
+            <div class="barcode-card">
+                <svg id="inlineBarcodeImg"></svg>
+                <div class="carrier-code-display" id="inlineCodeDisplay"></div>
+                <div class="barcode-hint">請對準掃描器，保持螢幕亮度最高</div>
+            </div>
+        </div>
+
         <div class="segmented mode-switch">
             <button type="button" class="segment active" id="mode0" onclick="setMode('trip')">直接輸入里程</button>
             <button type="button" class="segment" id="mode1" onclick="setMode('odo')">總公里數計算</button>
@@ -69,14 +77,6 @@
         <div id="costHint" class="mode-hint" style="display:none"></div>
         <button class="btn" onclick="save()">儲存數據</button>
         <button class="secondary-btn" id="cancelEditBtn" style="display:none" onclick="cancelEdit()">取消編輯</button>
-
-        <div id="inlineBarcode" class="barcode-section" style="display:none">
-            <div class="barcode-card">
-                <svg id="inlineBarcodeImg"></svg>
-                <div class="carrier-code-display" id="inlineCodeDisplay"></div>
-                <div class="barcode-hint">請對準掃描器，保持螢幕亮度最高</div>
-            </div>
-        </div>
     </div>
 
     <!-- 圖表 -->
@@ -152,6 +152,6 @@
         <button class="secondary-btn" onclick="tab(0)">完成</button>
     </div>
 
-    <script src="script.js?v=11"></script>
+    <script src="script.js?v=12"></script>
 </body>
 </html>

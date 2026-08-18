@@ -172,6 +172,8 @@ body.in-settings .stats-grid { display: none; }
 
 /* 條碼顯示區 */
 .barcode-section { margin-top: 20px; }
+/* 新增頁的條碼放最上面，開 App 就能直接給店員掃，不用往下滑 */
+#inlineBarcode { margin-top: 0; margin-bottom: 22px; }
 .barcode-card {
     background: #FFFFFF;
     border-radius: 16px;
