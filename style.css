@@ -67,6 +67,12 @@ h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1p
 }
 .gear-btn:active { opacity: 0.5; }
 
+/* 設定頁分組：組與組之間留白，一眼看得出分界 */
+.settings-group { margin-bottom: 30px; }
+.settings-group .ios-list,
+.settings-group .segmented { margin-bottom: 0; }
+.group-hint { font-size: 12px; color: var(--ios-gray); line-height: 1.5; margin: 8px 4px 0; }
+
 /* 設定頁可點的列 */
 .link-row { cursor: pointer; }
 .link-row label { color: var(--ios-blue); cursor: pointer; }

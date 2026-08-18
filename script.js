@@ -3,7 +3,7 @@
 // 版本號寫在這支檔案裡，設定頁顯示的就是「實際載入到的版本」。
 // 手機若還顯示舊版本，代表吃到快取，重新整理即可。
 // 改版時請一起更新 index.html 裡 style.css / script.js 的 ?v= 數字。
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.3.1';
 const APP_VERSION_DATE = '2026-08-18';
 let records = JSON.parse(localStorage.getItem('fuelRecords') || '[]');
 let chart;
@@ -40,8 +40,7 @@ function setCurrentTime() {
 }
 
 function showVersion() {
-    $('appVersion').innerText = APP_VERSION;
-    $('appVersionDate').innerText = APP_VERSION_DATE;
+    $('appVersion').innerText = `${APP_VERSION}（${APP_VERSION_DATE}）`;
 }
 
 // 外觀：跟隨系統 / 淺色 / 深色
@@ -587,6 +586,14 @@ function loadSavedCarrier() {
     $('carrierInput').value = saved;
     if (typeof JsBarcode === 'undefined') return;
     // 設定頁不自動展開大張條碼，加油要掃的那張在「新增」頁下方
+    renderInlineBarcode();
+}
+
+// 離開欄位就存起來，免得填完直接離開設定頁又要重填
+function saveCarrier() {
+    const raw = $('carrierInput').value.trim().toUpperCase();
+    if (!/^[A-Z0-9+\-.]{7}$/.test(raw)) return;
+    localStorage.setItem('carrierCode', raw);
     renderInlineBarcode();
 }
 
