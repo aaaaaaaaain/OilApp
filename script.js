@@ -3,7 +3,7 @@
 // 版本號寫在這支檔案裡，設定頁顯示的就是「實際載入到的版本」。
 // 手機若還顯示舊版本，代表吃到快取，重新整理即可。
 // 改版時請一起更新 index.html 裡 style.css / script.js 的 ?v= 數字。
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.2.1';
 const APP_VERSION_DATE = '2026-08-18';
 let records = JSON.parse(localStorage.getItem('fuelRecords') || '[]');
 let chart;
@@ -194,6 +194,7 @@ function persist() {
 function tab(i) {
     document.querySelectorAll('#mainTabs .segment').forEach((s, x) => s.classList.toggle('active', x === i));
     document.querySelectorAll('.sec').forEach((s, x) => s.classList.toggle('active', x === i));
+    document.body.classList.toggle('in-settings', i === 3);
     if (i === 1) updateChart();
     if (i === 0) { renderInlineBarcode(); updateOdoHint(); }
     window.scrollTo(0, 0);
@@ -473,7 +474,8 @@ function loadSavedCarrier() {
     if (!saved) return;
     $('carrierInput').value = saved;
     if (typeof JsBarcode === 'undefined') return;
-    showBarcode('/' + saved);
+    // 設定頁不自動展開大張條碼，加油要掃的那張在「新增」頁下方
+    renderInlineBarcode();
 }
 
 function generateBarcode() {

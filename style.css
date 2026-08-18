@@ -42,6 +42,15 @@ body {
     user-select: none;
 }
 
+/* iOS 主畫面捷徑是透明狀態列，這層擋住捲上去的內容，避免跟時間、電量疊字 */
+body::before {
+    content: '';
+    position: fixed; top: 0; left: 0; right: 0;
+    height: env(safe-area-inset-top);
+    background: var(--ios-bg);
+    z-index: 10;
+}
+
 input::-webkit-date-and-time-value { text-align: right; padding-right: 5px; }
 
 h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1px; }
@@ -60,6 +69,9 @@ h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1p
 
 /* 設定頁的唯讀欄位值（版本號等） */
 .ios-value { font-size: 17px; color: var(--ios-gray); }
+
+/* 設定頁跟油耗數字無關，把統計卡片收起來 */
+body.in-settings .stats-grid { display: none; }
 
 /* 設定頁的分組標題 */
 .sec-title { font-size: 13px; font-weight: 600; color: var(--ios-gray); margin: 0 0 8px 4px; }
