@@ -3,7 +3,7 @@
 // 版本號寫在這支檔案裡，設定頁顯示的就是「實際載入到的版本」。
 // 手機若還顯示舊版本，代表吃到快取，重新整理即可。
 // 改版時請一起更新 index.html 裡 style.css / script.js 的 ?v= 數字。
-const APP_VERSION = '1.2.1';
+const APP_VERSION = '1.3.0';
 const APP_VERSION_DATE = '2026-08-18';
 let records = JSON.parse(localStorage.getItem('fuelRecords') || '[]');
 let chart;
@@ -184,6 +184,11 @@ function recalc() {
         }
         r.cons = (r.km != null && !isNaN(r.km) && r.l > 0) ? Number((r.km / r.l).toFixed(2)) : null;
     });
+}
+
+// 匯出檔名用的日期，Excel 與 JSON 備份共用
+function fileStamp() {
+    return new Date().toLocaleDateString().replace(/\//g, '-');
 }
 
 function persist() {
@@ -446,7 +451,114 @@ function exportXLS() {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '油耗記錄');
-    XLSX.writeFile(wb, `油耗記錄_${new Date().toLocaleDateString().replace(/\//g, '-')}.xlsx`);
+    XLSX.writeFile(wb, `油耗記錄_${fileStamp()}.xlsx`);
+}
+
+// JSON 備份：Excel 是給人看的，這個是拿來還原的
+function buildBackup() {
+    return {
+        app: 'oilAPP',
+        version: APP_VERSION,
+        exportedAt: new Date().toISOString(),
+        records: records,
+        settings: {
+            carrierCode: localStorage.getItem('carrierCode') || '',
+            unitPrice: localStorage.getItem('unitPrice') || '',
+            inputMode: inputMode,
+            theme: theme
+        }
+    };
+}
+
+function exportBackup() {
+    if (!records.length) return alert('目前沒有紀錄可以備份');
+
+    const blob = new Blob([JSON.stringify(buildBackup(), null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `油耗備份_${fileStamp()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// 備份檔可能來自別台手機，逐筆檢查再收下
+function validRecord(r) {
+    return !!r && typeof r.d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.d) &&
+        typeof r.l === 'number' && !isNaN(r.l) && r.l > 0;
+}
+
+function normalizeRecord(r) {
+    const num = v => (typeof v === 'number' && !isNaN(v)) ? v : null;
+    return {
+        d: r.d,
+        t: (typeof r.t === 'string' && r.t) ? r.t : '00:00',
+        l: r.l,
+        cost: (num(r.cost) !== null && r.cost > 0) ? r.cost : null,
+        km: num(r.km),
+        odo: num(r.odo),
+        cons: null // 由 recalc() 重算，不信任備份檔裡的值
+    };
+}
+
+function applyBackupSettings(s) {
+    if (!s) return;
+
+    if (typeof s.carrierCode === 'string' && /^[A-Z0-9+\-.]{7}$/.test(s.carrierCode)) {
+        localStorage.setItem('carrierCode', s.carrierCode);
+        $('carrierInput').value = s.carrierCode;
+        renderInlineBarcode();
+    }
+
+    const price = parseFloat(s.unitPrice);
+    if (!isNaN(price) && price > 0) localStorage.setItem('unitPrice', price);
+
+    if (s.inputMode === 'trip' || s.inputMode === 'odo') setMode(s.inputMode);
+    if (s.theme === 'system' || s.theme === 'light' || s.theme === 'dark') applyTheme(s.theme);
+}
+
+function importBackup(input) {
+    const file = input.files && input.files[0];
+    input.value = ''; // 清掉才能重選同一個檔案
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onerror = () => alert('讀取檔案失敗，請再試一次');
+    reader.onload = () => {
+        let data;
+        try {
+            data = JSON.parse(reader.result);
+        } catch (e) {
+            return alert('這個檔案不是有效的 JSON 備份檔');
+        }
+
+        // 也接受只有紀錄陣列的檔案
+        const list = Array.isArray(data) ? data : (data && data.records);
+        if (!Array.isArray(list)) return alert('備份檔裡找不到加油紀錄');
+
+        const clean = list.filter(validRecord).map(normalizeRecord);
+        if (!clean.length) return alert('備份檔裡沒有可用的加油紀錄');
+
+        const skipped = list.length - clean.length;
+        const skipText = skipped ? `\n（有 ${skipped} 筆格式不符會被略過）` : '';
+        if (!confirm(`備份檔有 ${clean.length} 筆紀錄，目前有 ${records.length} 筆。\n還原會取代目前全部紀錄，且無法復原。${skipText}\n\n確定還原嗎？`)) return;
+
+        records = clean;
+        records.sort((a, b) => (a.d + a.t).localeCompare(b.d + b.t));
+        recalc();
+        persist();
+
+        applyBackupSettings(Array.isArray(data) ? null : data.settings);
+
+        resetForm();
+        render();
+        updateChart();
+        alert(`已還原 ${records.length} 筆紀錄`);
+        tab(2);
+    };
+    reader.readAsText(file);
 }
 
 function clearAll() {

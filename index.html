@@ -22,7 +22,7 @@
     </script>
 
     <!-- ?v= 版本號：改版後手機（尤其是 iOS 主畫面捷徑）才不會繼續用舊的快取檔 -->
-    <link rel="stylesheet" href="style.css?v=8">
+    <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
     <div class="header">
@@ -125,6 +125,14 @@
             </div>
         </div>
 
+        <div class="sec-title">資料</div>
+        <div class="ios-list">
+            <div class="ios-item link-row" onclick="exportBackup()"><label>匯出備份檔</label><span class="ios-value">JSON</span></div>
+            <div class="ios-item link-row" onclick="$('importFile').click()"><label>還原備份檔</label><span class="ios-value">選擇檔案</span></div>
+        </div>
+        <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
+        <div class="mode-hint">備份檔含所有加油紀錄與設定。紀錄只存在這台手機的瀏覽器裡，清除瀏覽資料或換手機前請先匯出。</div>
+
         <div class="sec-title">關於</div>
         <div class="ios-list">
             <div class="ios-item"><label>版本</label><span class="ios-value" id="appVersion">--</span></div>
@@ -134,6 +142,6 @@
         <button class="secondary-btn" onclick="tab(0)">完成</button>
     </div>
 
-    <script src="script.js?v=8"></script>
+    <script src="script.js?v=9"></script>
 </body>
 </html>
