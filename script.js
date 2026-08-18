@@ -3,10 +3,11 @@
 // 版本號寫在這支檔案裡，設定頁顯示的就是「實際載入到的版本」。
 // 手機若還顯示舊版本，代表吃到快取，重新整理即可。
 // 改版時請一起更新 index.html 裡 style.css / script.js 的 ?v= 數字。
-const APP_VERSION = '1.3.1';
+const APP_VERSION = '1.4.0';
 const APP_VERSION_DATE = '2026-08-18';
 let records = JSON.parse(localStorage.getItem('fuelRecords') || '[]');
 let chart;
+let chartRows = []; // 圖上每個點對應的原始紀錄，tooltip 要用
 let inputMode = localStorage.getItem('inputMode') || 'trip'; // trip = 直接輸入里程, odo = 總公里數相減
 let theme = localStorage.getItem('theme') || 'system';       // system = 跟隨系統, light = 淺色, dark = 深色
 
@@ -20,7 +21,7 @@ const round2 = n => Number(n.toFixed(2));
 
 // 初始化：每步驟獨立包起來，CDN 載入失敗時只有該功能失效，不會整個卡住
 function init() {
-    const steps = [showVersion, setCurrentTime, () => applyTheme(theme), recalc, () => setMode(inputMode), render, loadSavedPrice, updateCostHint, initChart, loadSavedCarrier];
+    const steps = [showVersion, setCurrentTime, () => applyTheme(theme), recalc, () => setMode(inputMode), render, loadSavedPrice, updateCostHint, loadSavedCarrier];
     steps.forEach(step => {
         try { step(); } catch (e) { console.error('初始化步驟失敗:', e); }
     });
@@ -51,6 +52,7 @@ function applyTheme(mode) {
     if (theme === 'system') document.documentElement.removeAttribute('data-theme');
     else document.documentElement.setAttribute('data-theme', theme);
 
+    updateChart(); // 圖表的軸線與配色跟著主題走
     $('themeSystem').classList.toggle('active', theme === 'system');
     $('themeLight').classList.toggle('active', theme === 'light');
     $('themeDark').classList.toggle('active', theme === 'dark');
@@ -385,21 +387,125 @@ function del(i) {
 }
 
 // 圖表
-function initChart() {
-    if (typeof Chart === 'undefined') return; // 函式庫沒載到就跳過，其他功能照常
+// 直接讀 CSS 變數，深色／淺色切換時圖表才不會留著舊配色
+function chartColors() {
+    const cs = getComputedStyle(document.documentElement);
+    const pick = (name, fallback) => cs.getPropertyValue(name).trim() || fallback;
+    return {
+        blue: pick('--ios-blue', '#007AFF'),
+        gray: pick('--ios-gray', '#8E8E93'),
+        sep: pick('--ios-sep', '#C6C6C8')
+    };
+}
+
+// 在隱藏的分頁裡建立圖表，Chart.js 會把畫布尺寸記成 0 且事後 resize() 也救不回來，
+// 所以延到第一次真的切到圖表分頁時才建。
+function ensureChart() {
+    if (chart) return chart;
+    if (typeof Chart === 'undefined') return null; // 函式庫沒載到就跳過，其他功能照常
+    if (!$('chart').offsetParent) return null;     // 分頁還藏著，等切過來再說
+
+    const c = chartColors();
+
     chart = new Chart($('chart').getContext('2d'), {
         type: 'line',
-        data: { labels: [], datasets: [{ data: [], borderColor: '#007AFF', tension: 0.4, fill: false }] },
-        options: { plugins: { legend: { display: false } } }
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: '油耗',
+                    data: [],
+                    borderColor: c.blue,
+                    backgroundColor: c.blue + '22',
+                    borderWidth: 2.5,
+                    tension: 0.35,
+                    fill: true,
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: c.blue,
+                    pointBorderWidth: 0
+                },
+                {
+                    label: '平均',
+                    data: [],
+                    borderColor: c.gray,
+                    borderWidth: 1,
+                    borderDash: [5, 4],
+                    pointRadius: 0,
+                    pointHoverRadius: 0,
+                    fill: false,
+                    tension: 0
+                }
+            ]
+        },
+        options: {
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    displayColors: false,
+                    filter: item => item.datasetIndex === 0, // 平均線不進 tooltip
+                    callbacks: {
+                        title: items => {
+                            const r = chartRows[items[0].dataIndex];
+                            return r ? `${r.d} ${r.t || ''}`.trim() : '';
+                        },
+                        label: item => `油耗 ${item.parsed.y} km/L`,
+                        afterBody: items => {
+                            const r = chartRows[items[0].dataIndex];
+                            if (!r) return [];
+                            const lines = [`${r.km} km ／ ${r.l} L`];
+                            if (hasCost(r)) lines.push(`${money(r.cost)}（${(r.cost / r.l).toFixed(2)}/L）`);
+                            return lines;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { color: c.gray, font: { size: 11 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 6 }
+                },
+                y: {
+                    grid: { color: c.sep },
+                    ticks: { color: c.gray, font: { size: 11 } }
+                }
+            }
+        }
     });
-    updateChart();
+
+    return chart;
 }
 
 function updateChart() {
-    if (!chart) return;
-    const valid = records.filter(r => typeof r.cons === 'number' && !isNaN(r.cons));
-    chart.data.labels = valid.map(r => r.d);
-    chart.data.datasets[0].data = valid.map(r => r.cons);
+    if (!ensureChart()) return;
+
+    chartRows = records.filter(r => typeof r.cons === 'number' && !isNaN(r.cons));
+    const avg = chartRows.length ? chartRows.reduce((s, r) => s + r.cons, 0) / chartRows.length : 0;
+
+    // x 軸只放月-日，完整日期與時間留給 tooltip，窄螢幕才擠得下
+    chart.data.labels = chartRows.map(r => r.d.slice(5));
+    chart.data.datasets[0].data = chartRows.map(r => r.cons);
+    chart.data.datasets[1].data = chartRows.map(() => Number(avg.toFixed(2)));
+
+    const c = chartColors();
+    const line = chart.data.datasets[0];
+    line.borderColor = c.blue;
+    line.backgroundColor = c.blue + '22';
+    line.pointBackgroundColor = c.blue;
+    chart.data.datasets[1].borderColor = c.gray;
+    chart.options.scales.x.ticks.color = c.gray;
+    chart.options.scales.y.ticks.color = c.gray;
+    chart.options.scales.y.grid.color = c.sep;
+
+    // 沒資料時用 visibility 藏起來，不能用 display:none ——
+    // Chart.js 量不到尺寸就會把畫布縮成 0，之後再也撐不回來
+    $('chart').style.visibility = chartRows.length ? 'visible' : 'hidden';
+    $('chartEmpty').style.display = chartRows.length ? 'none' : '';
+
+    // 圖表分頁建立時是隱藏的，Chart.js 當時量到 0 高度，切過來要重新量一次
+    chart.resize();
     chart.update();
 }
 

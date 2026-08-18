@@ -67,6 +67,15 @@ h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1p
 }
 .gear-btn:active { opacity: 0.5; }
 
+/* 圖表：固定高度，canvas 才有空間撐開（maintainAspectRatio: false） */
+.chart-card { position: relative; box-sizing: border-box; height: 320px; padding: 14px 12px; }
+.chart-card canvas { display: block; }
+.chart-empty {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ios-gray); font-size: 14px;
+}
+
 /* 設定頁分組：組與組之間留白，一眼看得出分界 */
 .settings-group { margin-bottom: 30px; }
 .settings-group .ios-list,
