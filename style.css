@@ -58,6 +58,9 @@ h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1p
 }
 .gear-btn:active { opacity: 0.5; }
 
+/* 設定頁的唯讀欄位值（版本號等） */
+.ios-value { font-size: 17px; color: var(--ios-gray); }
+
 /* 設定頁的分組標題 */
 .sec-title { font-size: 13px; font-weight: 600; color: var(--ios-gray); margin: 0 0 8px 4px; }
 

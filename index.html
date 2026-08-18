@@ -22,7 +22,7 @@
     </script>
 
     <!-- ?v= 版本號：改版後手機（尤其是 iOS 主畫面捷徑）才不會繼續用舊的快取檔 -->
-    <link rel="stylesheet" href="style.css?v=6">
+    <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
     <div class="header">
@@ -125,9 +125,15 @@
             </div>
         </div>
 
+        <div class="sec-title">關於</div>
+        <div class="ios-list">
+            <div class="ios-item"><label>版本</label><span class="ios-value" id="appVersion">--</span></div>
+            <div class="ios-item"><label>更新日期</label><span class="ios-value" id="appVersionDate">--</span></div>
+        </div>
+
         <button class="secondary-btn" onclick="tab(0)">完成</button>
     </div>
 
-    <script src="script.js?v=6"></script>
+    <script src="script.js?v=7"></script>
 </body>
 </html>

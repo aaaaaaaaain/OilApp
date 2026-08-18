@@ -1,4 +1,10 @@
 // 油耗紀錄 App —— 資料全部存在瀏覽器 localStorage，不會上傳
+
+// 版本號寫在這支檔案裡，設定頁顯示的就是「實際載入到的版本」。
+// 手機若還顯示舊版本，代表吃到快取，重新整理即可。
+// 改版時請一起更新 index.html 裡 style.css / script.js 的 ?v= 數字。
+const APP_VERSION = '1.2.0';
+const APP_VERSION_DATE = '2026-08-18';
 let records = JSON.parse(localStorage.getItem('fuelRecords') || '[]');
 let chart;
 let inputMode = localStorage.getItem('inputMode') || 'trip'; // trip = 直接輸入里程, odo = 總公里數相減
@@ -14,7 +20,7 @@ const round2 = n => Number(n.toFixed(2));
 
 // 初始化：每步驟獨立包起來，CDN 載入失敗時只有該功能失效，不會整個卡住
 function init() {
-    const steps = [setCurrentTime, () => applyTheme(theme), recalc, () => setMode(inputMode), render, loadSavedPrice, updateCostHint, initChart, loadSavedCarrier];
+    const steps = [showVersion, setCurrentTime, () => applyTheme(theme), recalc, () => setMode(inputMode), render, loadSavedPrice, updateCostHint, initChart, loadSavedCarrier];
     steps.forEach(step => {
         try { step(); } catch (e) { console.error('初始化步驟失敗:', e); }
     });
@@ -31,6 +37,11 @@ function setCurrentTime() {
     const pad = n => String(n).padStart(2, '0');
     $('date').value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
     $('time').value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
+
+function showVersion() {
+    $('appVersion').innerText = APP_VERSION;
+    $('appVersionDate').innerText = APP_VERSION_DATE;
 }
 
 // 外觀：跟隨系統 / 淺色 / 深色
