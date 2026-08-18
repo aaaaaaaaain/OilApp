@@ -90,8 +90,22 @@ h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1p
 /* 設定頁的唯讀欄位值（版本號等） */
 .ios-value { font-size: 17px; color: var(--ios-gray); }
 
-/* 設定頁跟油耗數字無關，把統計卡片收起來 */
-body.in-settings .stats-grid { display: none; }
+/* 設定頁跟油耗數字無關，把統計整塊收起來 */
+body.in-settings #statsWrap { display: none; }
+
+/* 統計收合 */
+#statsBody { cursor: pointer; }
+#statsBody:active { opacity: 0.6; }
+.stats-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--ios-card); border-radius: 12px; padding: 13px 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 25px; cursor: pointer;
+}
+.stats-bar:active { opacity: 0.6; }
+.stats-bar-main { font-size: 15px; font-weight: 700; color: var(--ios-blue); }
+.stats-bar-sub { font-size: 12px; color: var(--ios-gray); margin-left: 8px; }
+.stats-chevron { flex-shrink: 0; font-size: 12px; color: var(--ios-gray); }
 
 /* 設定頁的分組標題 */
 .sec-title { font-size: 13px; font-weight: 600; color: var(--ios-gray); margin: 0 0 8px 4px; }

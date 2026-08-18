@@ -22,7 +22,7 @@
     </script>
 
     <!-- ?v= 版本號：改版後手機（尤其是 iOS 主畫面捷徑）才不會繼續用舊的快取檔 -->
-    <link rel="stylesheet" href="style.css?v=12">
+    <link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
     <div class="header">
@@ -30,16 +30,29 @@
         <button type="button" class="gear-btn" onclick="tab(3)" aria-label="設定">&#9881;</button>
     </div>
 
-    <div class="stats-grid">
-        <div class="stat-card"><strong id="avgVal">0.00</strong><span>平均 km/L</span></div>
-        <div class="stat-card"><strong id="countVal">0</strong><span>總筆數</span></div>
-        <div class="stat-card"><strong id="lowVal">--</strong><span>歷史新低 km/L</span></div>
-    </div>
+    <div id="statsWrap">
+        <!-- 收合後只留這一行，條碼與表單就能往上移 -->
+        <div id="statsBar" class="stats-bar" style="display:none" onclick="toggleStats()">
+            <div>
+                <span class="stats-bar-main" id="statsBarMain">--</span>
+                <span class="stats-bar-sub" id="statsBarSub"></span>
+            </div>
+            <span class="stats-chevron">&#9662;</span>
+        </div>
 
-    <div class="stats-grid" id="costStats" style="display:none">
-        <div class="stat-card"><strong id="costTotalVal">--</strong><span>總油錢</span></div>
-        <div class="stat-card"><strong id="avgCostVal">--</strong><span>平均花費</span></div>
-        <div class="stat-card"><strong id="costPerKmVal">--</strong><span>每公里成本</span></div>
+        <div id="statsBody" onclick="toggleStats()">
+            <div class="stats-grid">
+                <div class="stat-card"><strong id="avgVal">0.00</strong><span>平均 km/L</span></div>
+                <div class="stat-card"><strong id="countVal">0</strong><span>總筆數</span></div>
+                <div class="stat-card"><strong id="lowVal">--</strong><span>歷史新低 km/L</span></div>
+            </div>
+
+            <div class="stats-grid" id="costStats" style="display:none">
+                <div class="stat-card"><strong id="costTotalVal">--</strong><span>總油錢</span></div>
+                <div class="stat-card"><strong id="avgCostVal">--</strong><span>平均花費</span></div>
+                <div class="stat-card"><strong id="costPerKmVal">--</strong><span>每公里成本</span></div>
+            </div>
+        </div>
     </div>
 
     <div class="segmented" id="mainTabs">
@@ -152,6 +165,6 @@
         <button class="secondary-btn" onclick="tab(0)">完成</button>
     </div>
 
-    <script src="script.js?v=12"></script>
+    <script src="script.js?v=13"></script>
 </body>
 </html>

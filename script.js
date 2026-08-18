@@ -3,13 +3,14 @@
 // 版本號寫在這支檔案裡，設定頁顯示的就是「實際載入到的版本」。
 // 手機若還顯示舊版本，代表吃到快取，重新整理即可。
 // 改版時請一起更新 index.html 裡 style.css / script.js 的 ?v= 數字。
-const APP_VERSION = '1.4.1';
-const APP_VERSION_DATE = '2026-08-18';
+const APP_VERSION = '1.5.0';
+const APP_VERSION_DATE = '2026-08-19';
 let records = JSON.parse(localStorage.getItem('fuelRecords') || '[]');
 let chart;
 let chartRows = []; // 圖上每個點對應的原始紀錄，tooltip 要用
 let inputMode = localStorage.getItem('inputMode') || 'trip'; // trip = 直接輸入里程, odo = 總公里數相減
 let theme = localStorage.getItem('theme') || 'system';       // system = 跟隨系統, light = 淺色, dark = 深色
+let statsOpen = localStorage.getItem('statsOpen') !== '0';   // 統計卡片是否展開，預設展開
 
 const $ = id => document.getElementById(id);
 
@@ -21,7 +22,7 @@ const round2 = n => Number(n.toFixed(2));
 
 // 初始化：每步驟獨立包起來，CDN 載入失敗時只有該功能失效，不會整個卡住
 function init() {
-    const steps = [showVersion, setCurrentTime, () => applyTheme(theme), recalc, () => setMode(inputMode), render, loadSavedPrice, updateCostHint, loadSavedCarrier];
+    const steps = [showVersion, setCurrentTime, () => applyTheme(theme), recalc, () => setMode(inputMode), render, applyStatsOpen, loadSavedPrice, updateCostHint, loadSavedCarrier];
     steps.forEach(step => {
         try { step(); } catch (e) { console.error('初始化步驟失敗:', e); }
     });
@@ -42,6 +43,18 @@ function setCurrentTime() {
 
 function showVersion() {
     $('appVersion').innerText = `${APP_VERSION}（${APP_VERSION_DATE}）`;
+}
+
+// 統計卡片收合：收起來只剩一行摘要，條碼與表單整個往上移
+function toggleStats() {
+    statsOpen = !statsOpen;
+    localStorage.setItem('statsOpen', statsOpen ? '1' : '0');
+    applyStatsOpen();
+}
+
+function applyStatsOpen() {
+    $('statsBody').style.display = statsOpen ? '' : 'none';
+    $('statsBar').style.display = statsOpen ? 'none' : '';
 }
 
 // 外觀：跟隨系統 / 淺色 / 深色
@@ -272,7 +285,8 @@ function cancelEdit() {
 // 渲染統計與清單
 function render() {
     const valid = records.filter(r => typeof r.cons === 'number' && !isNaN(r.cons));
-    $('avgVal').innerText = valid.length ? (valid.reduce((s, r) => s + r.cons, 0) / valid.length).toFixed(2) : '0.00';
+    const avgCons = valid.length ? (valid.reduce((s, r) => s + r.cons, 0) / valid.length).toFixed(2) : null;
+    $('avgVal').innerText = avgCons || '0.00';
     $('countVal').innerText = records.length;
     $('lowVal').innerText = valid.length ? Math.min(...valid.map(r => r.cons)).toFixed(2) : '--';
 
@@ -291,6 +305,12 @@ function render() {
         $('avgCostVal').innerText = money(round2(totalCost / withCost.length));
         $('costPerKmVal').innerText = bothKm ? money2(bothCost / bothKm) : '--';
     }
+
+    // 收合那行的摘要：油耗擺前面，有記帳才補上總油錢
+    $('statsBarMain').innerText = avgCons ? `平均 ${avgCons} km/L` : '還沒有紀錄';
+    $('statsBarSub').innerText = withCost.length
+        ? `${money(withCost.reduce((s, r) => s + r.cost, 0))} ／ ${records.length} 筆`
+        : (records.length ? `${records.length} 筆` : '');
 
     const container = $('list');
     container.innerHTML = '';
