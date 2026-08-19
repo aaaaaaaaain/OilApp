@@ -56,8 +56,19 @@ input::-webkit-date-and-time-value { text-align: right; padding-right: 5px; }
 h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1px; }
 
 /* 標題列與右上角設定鈕 */
-.header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
-.header h1 { margin-bottom: 0; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 20px; }
+.header h1 { margin-bottom: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* 右上角車輛切換：用原生 select，iOS 會跳出滾輪選單 */
+.vehicle-select {
+    max-width: 116px; padding: 9px 10px; border-radius: 10px;
+    background: var(--ios-card); color: var(--ios-blue);
+    border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    font-size: 14px; font-weight: 600; font-family: inherit;
+    -webkit-appearance: none; appearance: none;
+    text-align: center; text-overflow: ellipsis;
+}
 .gear-btn {
     flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
     background: var(--ios-card); border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -81,6 +92,11 @@ h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1p
 .settings-group .ios-list,
 .settings-group .segmented { margin-bottom: 0; }
 .group-hint { font-size: 12px; color: var(--ios-gray); line-height: 1.5; margin: 8px 4px 0; }
+
+/* 設定頁的車輛清單 */
+.vehicle-name { color: var(--ios-blue); cursor: pointer; }
+.vehicle-name .tag { margin-left: 6px; }
+.vehicle-count { color: var(--ios-gray); margin-right: 12px; }
 
 /* 設定頁可點的列 */
 .link-row { cursor: pointer; }

@@ -22,12 +22,15 @@
     </script>
 
     <!-- ?v= 版本號：改版後手機（尤其是 iOS 主畫面捷徑）才不會繼續用舊的快取檔 -->
-    <link rel="stylesheet" href="style.css?v=13">
+    <link rel="stylesheet" href="style.css?v=14">
 </head>
 <body>
     <div class="header">
         <h1>油耗紀錄</h1>
-        <button type="button" class="gear-btn" onclick="tab(3)" aria-label="設定">&#9881;</button>
+        <div class="header-actions">
+            <select id="vehicleSelect" class="vehicle-select" onchange="switchVehicle(this.value)" aria-label="切換車輛"></select>
+            <button type="button" class="gear-btn" onclick="tab(3)" aria-label="設定">&#9881;</button>
+        </div>
     </div>
 
     <div id="statsWrap">
@@ -111,6 +114,12 @@
     <!-- 設定 -->
     <div id="s3" class="sec">
         <div class="settings-group">
+            <div class="sec-title">車輛</div>
+            <div class="ios-list" id="vehicleList"></div>
+            <div class="group-hint">點車牌可改名。每台車的紀錄、統計與圖表分開計算。</div>
+        </div>
+
+        <div class="settings-group">
             <div class="sec-title">外觀</div>
             <div class="segmented" id="themeSeg">
                 <button type="button" class="segment" id="themeSystem" onclick="applyTheme('system')">跟隨系統</button>
@@ -165,6 +174,6 @@
         <button class="secondary-btn" onclick="tab(0)">完成</button>
     </div>
 
-    <script src="script.js?v=13"></script>
+    <script src="script.js?v=14"></script>
 </body>
 </html>

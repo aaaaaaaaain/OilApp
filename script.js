@@ -3,9 +3,12 @@
 // 版本號寫在這支檔案裡，設定頁顯示的就是「實際載入到的版本」。
 // 手機若還顯示舊版本，代表吃到快取，重新整理即可。
 // 改版時請一起更新 index.html 裡 style.css / script.js 的 ?v= 數字。
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.6.0';
 const APP_VERSION_DATE = '2026-08-19';
-let records = JSON.parse(localStorage.getItem('fuelRecords') || '[]');
+let vehicles = [];   // [{ id, plate }]
+let fuelData = {};   // { 車輛 id: [紀錄...] }
+let activeVid = '';  // 目前選到的車輛 id
+let records = [];    // = fuelData[activeVid]，其餘程式碼都只認這個
 let chart;
 let chartRows = []; // 圖上每個點對應的原始紀錄，tooltip 要用
 let inputMode = localStorage.getItem('inputMode') || 'trip'; // trip = 直接輸入里程, odo = 總公里數相減
@@ -13,6 +16,151 @@ let theme = localStorage.getItem('theme') || 'system';       // system = 跟隨�
 let statsOpen = localStorage.getItem('statsOpen') !== '0';   // 統計卡片是否展開，預設展開
 
 const $ = id => document.getElementById(id);
+
+// 車牌是使用者輸入的，進 innerHTML 前一律轉義
+const esc = s => String(s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const sortRecords = list => list.sort((a, b) => (a.d + a.t).localeCompare(b.d + b.t));
+
+function newVehicleId() {
+    return 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function safeParseArray(raw) {
+    try {
+        const v = JSON.parse(raw);
+        return Array.isArray(v) ? v : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+// 讀出車輛與紀錄；1.5.0 以前只有一台車，舊資料搬進預設車輛
+function loadData() {
+    try { vehicles = JSON.parse(localStorage.getItem('vehicles') || '[]'); } catch (e) { vehicles = []; }
+    if (!Array.isArray(vehicles)) vehicles = [];
+    try { fuelData = JSON.parse(localStorage.getItem('fuelData') || '{}'); } catch (e) { fuelData = {}; }
+    if (!fuelData || typeof fuelData !== 'object') fuelData = {};
+
+    if (!vehicles.length) {
+        const legacy = localStorage.getItem('fuelRecords');
+        const id = newVehicleId();
+        vehicles = [{ id, plate: '我的車' }];
+        fuelData[id] = legacy ? safeParseArray(legacy) : [];
+        if (legacy) {
+            localStorage.setItem('fuelRecords_v1', legacy); // 舊資料留一份，萬一搬移出錯還救得回
+            localStorage.removeItem('fuelRecords');
+        }
+    }
+
+    activeVid = localStorage.getItem('activeVehicle') || '';
+    if (!vehicles.some(v => v.id === activeVid)) activeVid = vehicles[0].id;
+    if (!Array.isArray(fuelData[activeVid])) fuelData[activeVid] = [];
+    records = fuelData[activeVid];
+
+    // 搬移完一定要立刻寫回：舊的 fuelRecords 已經刪掉，不存就真的沒了
+    persist();
+}
+
+function activePlate() {
+    const v = vehicles.find(x => x.id === activeVid);
+    return v ? v.plate : '';
+}
+
+function switchVehicle(id) {
+    if (!vehicles.some(v => v.id === id) || id === activeVid) return;
+
+    persist(); // 先把目前這台存好再換
+    activeVid = id;
+    if (!Array.isArray(fuelData[activeVid])) fuelData[activeVid] = [];
+    records = fuelData[activeVid];
+
+    recalc();
+    persist();
+    resetForm();
+    render();
+    updateChart();
+    renderVehicleUI();
+}
+
+function promptPlate(current) {
+    const raw = prompt('車牌或車名（最多 10 字）', current || '');
+    if (raw === null) return null;
+
+    const plate = raw.trim().slice(0, 10);
+    if (!plate) {
+        alert('請輸入車牌或車名');
+        return null;
+    }
+    return plate;
+}
+
+function addVehicle() {
+    const plate = promptPlate('');
+    if (!plate) return;
+
+    const id = newVehicleId();
+    vehicles.push({ id, plate });
+    fuelData[id] = [];
+    persist();
+    switchVehicle(id);
+}
+
+function renameVehicle(id) {
+    const v = vehicles.find(x => x.id === id);
+    if (!v) return;
+
+    const plate = promptPlate(v.plate);
+    if (!plate) return;
+
+    v.plate = plate;
+    persist();
+    renderVehicleUI();
+}
+
+function deleteVehicle(id) {
+    if (vehicles.length <= 1) return alert('至少要保留一台車');
+
+    const v = vehicles.find(x => x.id === id);
+    if (!v) return;
+
+    const n = (fuelData[id] || []).length;
+    if (!confirm(`刪除「${v.plate}」會一併刪除它的 ${n} 筆紀錄，且無法復原。\n\n確定刪除嗎？`)) return;
+
+    vehicles = vehicles.filter(x => x.id !== id);
+    delete fuelData[id];
+
+    if (activeVid === id) {
+        activeVid = vehicles[0].id;
+        if (!Array.isArray(fuelData[activeVid])) fuelData[activeVid] = [];
+        records = fuelData[activeVid];
+        recalc();
+        resetForm();
+    }
+
+    persist();
+    render();
+    updateChart();
+    renderVehicleUI();
+}
+
+function renderVehicleUI() {
+    const sel = $('vehicleSelect');
+    sel.innerHTML = vehicles.map(v => `<option value="${v.id}">${esc(v.plate)}</option>`).join('');
+    sel.value = activeVid;
+
+    const rows = vehicles.map(v => {
+        const n = (fuelData[v.id] || []).length;
+        const inUse = v.id === activeVid ? '<span class="tag">使用中</span>' : '';
+        return `<div class="ios-item">
+                <label class="vehicle-name" onclick="renameVehicle('${v.id}')">${esc(v.plate)}${inUse}</label>
+                <span class="ios-value"><span class="vehicle-count">${n} 筆</span><span class="link-del" onclick="deleteVehicle('${v.id}')">刪除</span></span>
+            </div>`;
+    });
+    rows.push('<div class="ios-item link-row" onclick="addVehicle()"><label>新增車輛</label><span class="ios-value">＋</span></div>');
+    $('vehicleList').innerHTML = rows.join('');
+}
 
 // 金額為選填，舊紀錄沒有 cost 欄位，一律視為沒填
 const hasCost = r => typeof r.cost === 'number' && !isNaN(r.cost) && r.cost > 0;
@@ -22,7 +170,7 @@ const round2 = n => Number(n.toFixed(2));
 
 // 初始化：每步驟獨立包起來，CDN 載入失敗時只有該功能失效，不會整個卡住
 function init() {
-    const steps = [showVersion, setCurrentTime, () => applyTheme(theme), recalc, () => setMode(inputMode), render, applyStatsOpen, loadSavedPrice, updateCostHint, loadSavedCarrier];
+    const steps = [showVersion, loadData, renderVehicleUI, setCurrentTime, () => applyTheme(theme), recalc, () => setMode(inputMode), render, applyStatsOpen, loadSavedPrice, updateCostHint, loadSavedCarrier];
     steps.forEach(step => {
         try { step(); } catch (e) { console.error('初始化步驟失敗:', e); }
     });
@@ -186,9 +334,9 @@ function updateCostHint() {
 }
 
 // 依總公里數重算里程與油耗（新增、編輯、刪除後都要跑）
-function recalc() {
+function recalc(list) {
     let prevOdo = null;
-    records.forEach(r => {
+    (list || records).forEach(r => {
         if (r.odo != null && !isNaN(r.odo)) {
             // 第一筆沒有更早的總公里數，就把里程表讀數當成「從 0 起算」的行駛里程
             r.base = prevOdo == null;
@@ -206,7 +354,10 @@ function fileStamp() {
 }
 
 function persist() {
-    localStorage.setItem('fuelRecords', JSON.stringify(records));
+    fuelData[activeVid] = records;
+    localStorage.setItem('fuelData', JSON.stringify(fuelData));
+    localStorage.setItem('vehicles', JSON.stringify(vehicles));
+    localStorage.setItem('activeVehicle', activeVid);
 }
 
 // 頁籤切換
@@ -254,7 +405,7 @@ function save() {
     if (idx === -1) records.push(entry);
     else records[idx] = entry;
 
-    records.sort((a, b) => (a.d + a.t).localeCompare(b.d + b.t));
+    sortRecords(records);
     recalc();
     persist();
 
@@ -576,16 +727,20 @@ function exportXLS() {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '油耗記錄');
-    XLSX.writeFile(wb, `油耗記錄_${fileStamp()}.xlsx`);
+    const plate = activePlate().replace(/[\\/:*?"<>|]/g, '');
+    XLSX.writeFile(wb, `油耗記錄_${plate}_${fileStamp()}.xlsx`);
 }
 
 // JSON 備份：Excel 是給人看的，這個是拿來還原的
 function buildBackup() {
+    persist(); // 確保 fuelData 是最新的
     return {
         app: 'oilAPP',
         version: APP_VERSION,
         exportedAt: new Date().toISOString(),
-        records: records,
+        vehicles: vehicles,
+        data: fuelData,
+        activeVehicle: activeVid,
         settings: {
             carrierCode: localStorage.getItem('carrierCode') || '',
             unitPrice: localStorage.getItem('unitPrice') || '',
@@ -596,7 +751,8 @@ function buildBackup() {
 }
 
 function exportBackup() {
-    if (!records.length) return alert('目前沒有紀錄可以備份');
+    const total = vehicles.reduce((s, v) => s + (fuelData[v.id] || []).length, 0);
+    if (!total) return alert('目前沒有紀錄可以備份');
 
     const blob = new Blob([JSON.stringify(buildBackup(), null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -659,7 +815,12 @@ function importBackup(input) {
             return alert('這個檔案不是有效的 JSON 備份檔');
         }
 
-        // 也接受只有紀錄陣列的檔案
+        // 1.6.0 起的多車輛備份
+        if (data && Array.isArray(data.vehicles) && data.data && typeof data.data === 'object') {
+            return restoreMultiVehicle(data);
+        }
+
+        // 舊版備份或純紀錄陣列，收進目前這台車
         const list = Array.isArray(data) ? data : (data && data.records);
         if (!Array.isArray(list)) return alert('備份檔裡找不到加油紀錄');
 
@@ -668,10 +829,9 @@ function importBackup(input) {
 
         const skipped = list.length - clean.length;
         const skipText = skipped ? `\n（有 ${skipped} 筆格式不符會被略過）` : '';
-        if (!confirm(`備份檔有 ${clean.length} 筆紀錄，目前有 ${records.length} 筆。\n還原會取代目前全部紀錄，且無法復原。${skipText}\n\n確定還原嗎？`)) return;
+        if (!confirm(`備份檔有 ${clean.length} 筆紀錄，「${activePlate()}」目前有 ${records.length} 筆。\n還原會取代這台車的全部紀錄，且無法復原。${skipText}\n\n確定還原嗎？`)) return;
 
-        records = clean;
-        records.sort((a, b) => (a.d + a.t).localeCompare(b.d + b.t));
+        records = sortRecords(clean);
         recalc();
         persist();
 
@@ -680,19 +840,59 @@ function importBackup(input) {
         resetForm();
         render();
         updateChart();
+        renderVehicleUI();
         alert(`已還原 ${records.length} 筆紀錄`);
         tab(2);
     };
     reader.readAsText(file);
 }
 
+// 多車輛備份：整包取代，車輛清單也一併換掉
+function restoreMultiVehicle(data) {
+    const vs = data.vehicles.filter(v => v && typeof v.id === 'string' && typeof v.plate === 'string');
+    if (!vs.length) return alert('備份檔裡找不到車輛');
+
+    const nextData = {};
+    let total = 0;
+    let skipped = 0;
+
+    vs.forEach(v => {
+        const list = Array.isArray(data.data[v.id]) ? data.data[v.id] : [];
+        const clean = list.filter(validRecord).map(normalizeRecord);
+        skipped += list.length - clean.length;
+        sortRecords(clean);
+        recalc(clean);
+        nextData[v.id] = clean;
+        total += clean.length;
+    });
+
+    const nowTotal = vehicles.reduce((s, v) => s + (fuelData[v.id] || []).length, 0);
+    const skipText = skipped ? `\n（有 ${skipped} 筆格式不符會被略過）` : '';
+    if (!confirm(`備份檔有 ${vs.length} 台車、共 ${total} 筆紀錄，目前有 ${vehicles.length} 台車、${nowTotal} 筆。\n還原會取代全部車輛與紀錄，且無法復原。${skipText}\n\n確定還原嗎？`)) return;
+
+    vehicles = vs;
+    fuelData = nextData;
+    activeVid = vs.some(v => v.id === data.activeVehicle) ? data.activeVehicle : vs[0].id;
+    records = fuelData[activeVid];
+
+    persist();
+    applyBackupSettings(data.settings);
+    resetForm();
+    render();
+    updateChart();
+    renderVehicleUI();
+    alert(`已還原 ${vs.length} 台車、共 ${total} 筆紀錄`);
+    tab(2);
+}
+
 function clearAll() {
-    if (!confirm('確定清除所有資料？這無法復原。')) return;
+    if (!confirm(`確定清除「${activePlate()}」的所有紀錄？這無法復原。\n（其他車輛不受影響）`)) return;
     records = [];
     persist();
     resetForm();
     render();
     updateChart();
+    renderVehicleUI();
 }
 
 // 載具條碼
