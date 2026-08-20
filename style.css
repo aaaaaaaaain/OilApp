@@ -248,10 +248,7 @@ body.sheet-open { overflow: hidden; }
     padding: 24px 16px 18px;
     text-align: center;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    /* 白底只包住條碼，不再撐滿整個畫面寬度 */
-    width: fit-content;
-    max-width: 100%;
-    margin: 0 auto;
+    /* 寬度與底下的表單、清單對齊 */
 }
 .barcode-card svg { max-width: 100%; height: auto; }
 .carrier-code-display {

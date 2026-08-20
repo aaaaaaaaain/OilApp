@@ -3,7 +3,7 @@
 // 版本號寫在這支檔案裡，設定頁顯示的就是「實際載入到的版本」。
 // 手機若還顯示舊版本，代表吃到快取，重新整理即可。
 // 改版時請一起更新 index.html 裡 style.css / script.js 的 ?v= 數字。
-const APP_VERSION = '1.8.4';
+const APP_VERSION = '1.8.5';
 let vehicles = [];   // [{ id, plate }]
 let fuelData = {};   // { 車輛 id: [紀錄...] }
 let activeVid = '';  // 目前選到的車輛 id
@@ -925,7 +925,8 @@ const barcodeOpts = {
     format: 'CODE128',
     // 每個模組的寬度。調小條碼會變窄，但太窄掃描器會讀不到，2 是還算保險的下限
     width: 2,
-    height: 110,
+    // 高度只影響好不好對準，不影響辨識，壓低讓卡片變矮
+    height: 76,
     displayValue: false,
     margin: 8,
     background: '#FFFFFF',
