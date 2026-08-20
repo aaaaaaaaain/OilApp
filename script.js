@@ -3,7 +3,7 @@
 // 版本號寫在這支檔案裡，設定頁顯示的就是「實際載入到的版本」。
 // 手機若還顯示舊版本，代表吃到快取，重新整理即可。
 // 改版時請一起更新 index.html 裡 style.css / script.js 的 ?v= 數字。
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.8.0';
 const APP_VERSION_DATE = '2026-08-19';
 let vehicles = [];   // [{ id, plate }]
 let fuelData = {};   // { 車輛 id: [紀錄...] }
@@ -361,13 +361,21 @@ function persist() {
     localStorage.setItem('activeVehicle', activeVid);
 }
 
-// 頁籤切換：0 = 歷史油耗, 1 = 圖表, 2 = 設定（設定沒有對應的頁籤按鈕）
+// 只剩兩頁：0 = 主頁（圖表＋明細）, 1 = 設定
 function tab(i) {
-    document.querySelectorAll('#mainTabs .segment').forEach((s, x) => s.classList.toggle('active', x === i));
     document.querySelectorAll('.sec').forEach((s, x) => s.classList.toggle('active', x === i));
-    document.body.classList.toggle('in-settings', i === 2);
-    if (i === 1) updateChart();
+    document.body.classList.toggle('in-settings', i === 1);
+
+    // 右上角同一顆鈕在設定頁變成關閉，不必捲到底找「完成」
+    $('gearBtn').innerHTML = i === 1 ? '&times;' : '&#9881;';
+    $('gearBtn').setAttribute('aria-label', i === 1 ? '關閉設定' : '設定');
+
+    if (i === 0) updateChart();
     window.scrollTo(0, 0);
+}
+
+function toggleSettings() {
+    tab(document.body.classList.contains('in-settings') ? 0 : 1);
 }
 
 // 新增紀錄的彈出視窗

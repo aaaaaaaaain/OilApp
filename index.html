@@ -22,14 +22,14 @@
     </script>
 
     <!-- ?v= 版本號：改版後手機（尤其是 iOS 主畫面捷徑）才不會繼續用舊的快取檔 -->
-    <link rel="stylesheet" href="style.css?v=15">
+    <link rel="stylesheet" href="style.css?v=16">
 </head>
 <body>
     <div class="header">
         <h1>油耗紀錄</h1>
         <div class="header-actions">
             <select id="vehicleSelect" class="vehicle-select" onchange="switchVehicle(this.value)" aria-label="切換車輛"></select>
-            <button type="button" class="gear-btn" onclick="tab(2)" aria-label="設定">&#9881;</button>
+            <button type="button" class="gear-btn" id="gearBtn" onclick="toggleSettings()" aria-label="設定">&#9881;</button>
         </div>
     </div>
 
@@ -58,25 +58,19 @@
         </div>
     </div>
 
-    <div class="segmented" id="mainTabs">
-        <button type="button" class="segment active" onclick="tab(0)">歷史油耗</button>
-        <button type="button" class="segment" onclick="tab(1)">圖表</button>
-    </div>
-
-    <!-- 歷史油耗 -->
+    <!-- 主頁：圖表與歷史明細放在一起 -->
     <div id="s2" class="sec active">
-        <div class="ios-list" id="list"></div>
-        <button onclick="exportXLS()" class="secondary-btn">📥 導出 Excel</button>
-        <button onclick="clearAll()" class="danger-btn">重置資料</button>
-    </div>
-
-    <!-- 圖表 -->
-    <div id="s1" class="sec">
+        <div class="sec-title">油耗趨勢</div>
         <div class="stat-card chart-card">
             <canvas id="chart"></canvas>
             <div id="chartEmpty" class="chart-empty" style="display:none">還沒有可以畫的油耗資料</div>
         </div>
         <div class="group-hint">點一下線上的圓點看該次的日期時間、里程與花費。虛線是平均油耗。</div>
+
+        <div class="sec-title list-title">歷史明細</div>
+        <div class="ios-list" id="list"></div>
+        <button onclick="exportXLS()" class="secondary-btn">📥 導出 Excel</button>
+        <button onclick="clearAll()" class="danger-btn">重置資料</button>
     </div>
 
     <!-- 設定 -->
@@ -183,6 +177,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=15"></script>
+    <script src="script.js?v=16"></script>
 </body>
 </html>

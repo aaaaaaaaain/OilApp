@@ -87,6 +87,9 @@ h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1p
     color: var(--ios-gray); font-size: 14px;
 }
 
+/* 圖表與明細之間的分隔 */
+.list-title { margin-top: 26px; }
+
 /* 設定頁分組：組與組之間留白，一眼看得出分界 */
 .settings-group { margin-bottom: 30px; }
 .settings-group .ios-list,
