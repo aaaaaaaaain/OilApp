@@ -245,9 +245,13 @@ body.sheet-open { overflow: hidden; }
 .barcode-card {
     background: #FFFFFF;
     border-radius: 16px;
-    padding: 28px 16px 20px;
+    padding: 24px 16px 18px;
     text-align: center;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    /* 白底只包住條碼，不再撐滿整個畫面寬度 */
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 auto;
 }
 .barcode-card svg { max-width: 100%; height: auto; }
 .carrier-code-display {
