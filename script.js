@@ -3,7 +3,7 @@
 // 版本號寫在這支檔案裡，設定頁顯示的就是「實際載入到的版本」。
 // 手機若還顯示舊版本，代表吃到快取，重新整理即可。
 // 改版時請一起更新 index.html 裡 style.css / script.js 的 ?v= 數字。
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.7.0';
 const APP_VERSION_DATE = '2026-08-19';
 let vehicles = [];   // [{ id, plate }]
 let fuelData = {};   // { 車輛 id: [紀錄...] }
@@ -149,6 +149,7 @@ function renderVehicleUI() {
     const sel = $('vehicleSelect');
     sel.innerHTML = vehicles.map(v => `<option value="${v.id}">${esc(v.plate)}</option>`).join('');
     sel.value = activeVid;
+    $('sheetPlate').innerText = activePlate();
 
     const rows = vehicles.map(v => {
         const n = (fuelData[v.id] || []).length;
@@ -170,7 +171,7 @@ const round2 = n => Number(n.toFixed(2));
 
 // 初始化：每步驟獨立包起來，CDN 載入失敗時只有該功能失效，不會整個卡住
 function init() {
-    const steps = [showVersion, loadData, renderVehicleUI, setCurrentTime, () => applyTheme(theme), recalc, () => setMode(inputMode), render, applyStatsOpen, loadSavedPrice, updateCostHint, loadSavedCarrier];
+    const steps = [showVersion, loadData, renderVehicleUI, setCurrentTime, () => applyTheme(theme), recalc, () => setMode(inputMode), render, applyStatsOpen, loadSavedPrice, updateCostHint, loadSavedCarrier, openAdd];
     steps.forEach(step => {
         try { step(); } catch (e) { console.error('初始化步驟失敗:', e); }
     });
@@ -360,14 +361,31 @@ function persist() {
     localStorage.setItem('activeVehicle', activeVid);
 }
 
-// 頁籤切換
+// 頁籤切換：0 = 歷史油耗, 1 = 圖表, 2 = 設定（設定沒有對應的頁籤按鈕）
 function tab(i) {
     document.querySelectorAll('#mainTabs .segment').forEach((s, x) => s.classList.toggle('active', x === i));
     document.querySelectorAll('.sec').forEach((s, x) => s.classList.toggle('active', x === i));
-    document.body.classList.toggle('in-settings', i === 3);
+    document.body.classList.toggle('in-settings', i === 2);
     if (i === 1) updateChart();
-    if (i === 0) { renderInlineBarcode(); updateOdoHint(); }
     window.scrollTo(0, 0);
+}
+
+// 新增紀錄的彈出視窗
+function openAdd() {
+    $('sheetPlate').innerText = activePlate();
+    $('addSheet').classList.add('open');
+    document.body.classList.add('sheet-open');
+
+    renderInlineBarcode(); // 條碼放最上面，一打開就能給店員掃
+    updateOdoHint();
+    updateCostHint();
+    $('addSheet').scrollTop = 0;
+}
+
+function closeAdd() {
+    $('addSheet').classList.remove('open');
+    document.body.classList.remove('sheet-open');
+    resetForm(); // 關掉等於放棄這次輸入／編輯
 }
 
 // 儲存
@@ -409,9 +427,9 @@ function save() {
     recalc();
     persist();
 
-    resetForm();
     render();
-    tab(2); // 跳到明細頁
+    closeAdd();
+    tab(0); // 跳到明細頁
 }
 
 function resetForm() {
@@ -429,8 +447,8 @@ function resetForm() {
 }
 
 function cancelEdit() {
-    resetForm();
-    tab(2);
+    closeAdd();
+    tab(0);
 }
 
 // 渲染統計與清單
@@ -545,7 +563,7 @@ function editRecord(i) {
         setMode('trip');
     }
     updateCostHint();
-    tab(0);
+    openAdd();
 }
 
 function del(i) {
@@ -842,7 +860,7 @@ function importBackup(input) {
         updateChart();
         renderVehicleUI();
         alert(`已還原 ${records.length} 筆紀錄`);
-        tab(2);
+        tab(0);
     };
     reader.readAsText(file);
 }
@@ -882,7 +900,7 @@ function restoreMultiVehicle(data) {
     updateChart();
     renderVehicleUI();
     alert(`已還原 ${vs.length} 台車、共 ${total} 筆紀錄`);
-    tab(2);
+    tab(0);
 }
 
 function clearAll() {

@@ -190,6 +190,41 @@ body.in-settings #statsWrap { display: none; }
 .link-del { color: var(--ios-red); font-size: 13px; margin-left: 10px; cursor: pointer; }
 .empty { padding: 30px 16px; text-align: center; color: var(--ios-gray); font-size: 14px; }
 
+/* 右下角新增鈕 */
+.fab {
+    position: fixed; z-index: 40;
+    right: 20px; bottom: calc(env(safe-area-inset-bottom) + 20px);
+    width: 58px; height: 58px; border-radius: 50%;
+    background: var(--ios-blue); color: #FFFFFF;
+    border: none; box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+    font-size: 30px; line-height: 1; font-family: inherit;
+    cursor: pointer; touch-action: manipulation;
+}
+.fab:active { opacity: 0.6; }
+
+/* 新增紀錄彈出視窗：蓋滿畫面，自己捲動 */
+.sheet {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 50;
+    display: none; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: var(--ios-bg);
+    padding: calc(env(safe-area-inset-top) + 16px) 20px calc(env(safe-area-inset-bottom) + 40px);
+}
+.sheet.open { display: block; }
+.sheet-inner { max-width: 560px; margin: 0 auto; }
+body.sheet-open { overflow: hidden; }
+
+.sheet-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
+.sheet-title { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; min-width: 0; }
+.sheet-plate { font-size: 13px; font-weight: 600; color: var(--ios-gray); margin-left: 8px; }
+.sheet-close {
+    flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
+    background: var(--ios-card); border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    color: var(--ios-gray); font-size: 24px; line-height: 1;
+    cursor: pointer; font-family: inherit; touch-action: manipulation;
+}
+.sheet-close:active { opacity: 0.5; }
+
 /* 切換動畫 */
 .sec { display: none; }
 .sec.active { display: block; animation: fadeIn 0.3s; }
