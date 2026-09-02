@@ -83,7 +83,7 @@ h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1p
 
 /* 圖表：固定高度，canvas 才有空間撐開（maintainAspectRatio: false） */
 .chart-card { position: relative; box-sizing: border-box; height: 320px; padding: 14px 12px; }
-.chart-card canvas { display: block; }
+.chart-card canvas { display: block; max-width: 100%; }
 .chart-empty {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
     display: flex; align-items: center; justify-content: center;
@@ -205,7 +205,11 @@ body.in-settings #statsWrap { display: none; }
 .row-btn:active { opacity: 0.5; }
 
 .days-tag { font-size: 11px; color: var(--ios-gray); background: #7676801f; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
-.row-sub { display: block; color: var(--ios-gray); font-size: 13px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+/* 里程／公升／金額／單價各自一格，兩欄排列 */
+.row-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 10px; margin-top: 7px; }
+.fact { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
+.fact-label { flex-shrink: 0; font-size: 10px; font-weight: 600; color: var(--ios-gray); }
+.fact-val { font-size: 13px; color: var(--ios-text); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
 .row-tags:empty { display: none; }
 .row-time { color: var(--ios-gray); font-size: 13px; font-weight: 400; }

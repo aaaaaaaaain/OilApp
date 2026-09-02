@@ -3,7 +3,7 @@
 // 版本號寫在這支檔案裡，設定頁顯示的就是「實際載入到的版本」。
 // 手機若還顯示舊版本，代表吃到快取，重新整理即可。
 // 改版時請一起更新 index.html 裡 style.css / script.js 的 ?v= 數字。
-const APP_VERSION = '1.9.0';
+const APP_VERSION = '1.9.1';
 let vehicles = [];   // [{ id, plate }]
 let fuelData = {};   // { 車輛 id: [紀錄...] }
 let activeVid = '';  // 目前選到的車輛 id
@@ -523,10 +523,16 @@ function render() {
 
         const odoHtml = r.odo != null ? `<span class="tag">總 ${r.odo}km</span>` : '';
         const baseHtml = r.base ? '<span class="tag tag-base">起始</span>' : '';
-        const kmText = r.km != null ? `${r.km}km / ${r.l}L` : `-- / ${r.l}L`;
-        // 金額與單價併進同一行文字，不再做成標籤，右欄才有空間放編輯／刪除
-        const costText = hasCost(r) ? ` · ${money(r.cost)}` : '';
-        const priceText = (hasCost(r) && r.l > 0) ? ` · ${(r.cost / r.l).toFixed(2)}/L` : '';
+        // 里程、公升、金額、單價各佔一格，不再擠成一行
+        const fact = (label, value) => `<div class="fact"><span class="fact-label">${label}</span><span class="fact-val">${value}</span></div>`;
+        const facts = [
+            fact('里程', r.km != null ? `${r.km} km` : '--'),
+            fact('公升', `${r.l} L`)
+        ];
+        if (hasCost(r)) {
+            facts.push(fact('金額', money(r.cost)));
+            if (r.l > 0) facts.push(fact('單價', (r.cost / r.l).toFixed(2)));
+        }
         const hasCons = typeof r.cons === 'number';
         const consText = hasCons ? r.cons.toFixed(2) : '--';
         const unitHtml = hasCons ? '<span class="record-unit">km/L</span>' : '';
@@ -535,7 +541,7 @@ function render() {
             <div class="record-row">
                 <div class="record-main">
                     <div class="record-head"><b>${r.d}</b><span class="row-time">${r.t || ''}</span>${daysHtml}</div>
-                    <div class="row-sub">${kmText}${costText}${priceText}</div>
+                    <div class="row-facts">${facts.join('')}</div>
                     <div class="row-tags">${diffHtml}${odoHtml}${baseHtml}</div>
                 </div>
                 <div class="record-side">
