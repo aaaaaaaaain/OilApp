@@ -3,7 +3,7 @@
 // 版本號寫在這支檔案裡，設定頁顯示的就是「實際載入到的版本」。
 // 手機若還顯示舊版本，代表吃到快取，重新整理即可。
 // 改版時請一起更新 index.html 裡 style.css / script.js 的 ?v= 數字。
-const APP_VERSION = '1.8.5';
+const APP_VERSION = '1.9.0';
 let vehicles = [];   // [{ id, plate }]
 let fuelData = {};   // { 車輛 id: [紀錄...] }
 let activeVid = '';  // 目前選到的車輛 id
@@ -155,7 +155,7 @@ function renderVehicleUI() {
         const inUse = v.id === activeVid ? '<span class="tag">使用中</span>' : '';
         return `<div class="ios-item">
                 <label class="vehicle-name" onclick="renameVehicle('${v.id}')">${esc(v.plate)}${inUse}</label>
-                <span class="ios-value"><span class="vehicle-count">${n} 筆</span><span class="link-del" onclick="deleteVehicle('${v.id}')">刪除</span></span>
+                <span class="ios-value"><span class="vehicle-count">${n} 筆</span><button type="button" class="row-btn row-btn-del" onclick="deleteVehicle('${v.id}')">刪除</button></span>
             </div>`;
     });
     rows.push('<div class="ios-item link-row" onclick="addVehicle()"><label>新增車輛</label><span class="ios-value">＋</span></div>');
@@ -509,8 +509,8 @@ function render() {
             }
             if (prev) {
                 const diff = Number((r.cons - prev.cons).toFixed(2));
-                if (diff > 0) diffHtml = `<span class="diff-tag diff-up">↑${diff}</span>`;
-                else if (diff < 0) diffHtml = `<span class="diff-tag diff-down">↓${Math.abs(diff)}</span>`;
+                if (diff > 0) diffHtml = `<span class="diff-tag diff-up">▲ ${diff}</span>`;
+                else if (diff < 0) diffHtml = `<span class="diff-tag diff-down">▼ ${Math.abs(diff)}</span>`;
             }
         }
 
@@ -522,25 +522,27 @@ function render() {
         }
 
         const odoHtml = r.odo != null ? `<span class="tag">總 ${r.odo}km</span>` : '';
-        const baseHtml = r.base ? '<span class="tag">起始</span>' : '';
+        const baseHtml = r.base ? '<span class="tag tag-base">起始</span>' : '';
         const kmText = r.km != null ? `${r.km}km / ${r.l}L` : `-- / ${r.l}L`;
         // 金額與單價併進同一行文字，不再做成標籤，右欄才有空間放編輯／刪除
         const costText = hasCost(r) ? ` · ${money(r.cost)}` : '';
         const priceText = (hasCost(r) && r.l > 0) ? ` · ${(r.cost / r.l).toFixed(2)}/L` : '';
-        const consText = typeof r.cons === 'number' ? r.cons.toFixed(2) : '--';
+        const hasCons = typeof r.cons === 'number';
+        const consText = hasCons ? r.cons.toFixed(2) : '--';
+        const unitHtml = hasCons ? '<span class="record-unit">km/L</span>' : '';
 
         html.push(`
             <div class="record-row">
                 <div class="record-main">
                     <div class="record-head"><b>${r.d}</b><span class="row-time">${r.t || ''}</span>${daysHtml}</div>
                     <div class="row-sub">${kmText}${costText}${priceText}</div>
-                    <div class="row-tags">${odoHtml}${baseHtml}</div>
+                    <div class="row-tags">${diffHtml}${odoHtml}${baseHtml}</div>
                 </div>
                 <div class="record-side">
-                    <div class="record-cons">${diffHtml}<span class="record-val">${consText}</span></div>
+                    <div class="record-cons"><span class="record-val">${consText}</span>${unitHtml}</div>
                     <div class="record-actions">
-                        <span class="link-edit" onclick="editRecord(${i})">編輯</span>
-                        <span class="link-del" onclick="del(${i})">刪除</span>
+                        <button type="button" class="row-btn" onclick="editRecord(${i})">編輯</button>
+                        <button type="button" class="row-btn row-btn-del" onclick="del(${i})">刪除</button>
                     </div>
                 </div>
             </div>`);
