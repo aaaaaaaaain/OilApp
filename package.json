@@ -1,0 +1,16 @@
+{
+  "name": "oilapp",
+  "version": "1.10.0",
+  "private": true,
+  "description": "油耗紀錄 —— 網頁版與 Android APK 共用同一份原始碼",
+  "scripts": {
+    "build": "node build-www.js",
+    "apk": "npm run build && npx cap copy android && cd android && gradlew.bat assembleDebug"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.1",
+    "@capacitor/core": "^8.5.1"
+  }
+}

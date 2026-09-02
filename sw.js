@@ -1,22 +1,18 @@
 // Service Worker：讓 App 離線也能開，加油站沒訊號時條碼照樣掃得到。
 // 改版時把 CACHE 換成新版號，舊快取會在 activate 時清掉。
-const CACHE = 'oilapp-1.10.0';
+const CACHE = 'oilapp-1.11.0';
 
 // 版號要跟 index.html 裡的 ?v= 一致，否則會快取到對不上的檔案
 const ASSETS = [
     './',
     './index.html',
-    './style.css?v=24',
-    './script.js?v=24',
+    './style.css?v=25',
+    './script.js?v=25',
     './manifest.json',
-    './fuel.png'
-];
-
-// 外部函式庫：第一次連上網後存起來，之後離線也有
-const VENDOR = [
-    'https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js',
-    'https://cdn.jsdelivr.net/npm/chart.js',
-    'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js'
+    './fuel.png',
+    './vendor/xlsx.full.min.js?v=25',
+    './vendor/chart.min.js?v=25',
+    './vendor/jsbarcode.all.min.js?v=25'
 ];
 
 self.addEventListener('install', event => {
@@ -24,7 +20,7 @@ self.addEventListener('install', event => {
         const cache = await caches.open(CACHE);
         // 逐個放，某一個抓失敗不會讓整個安裝失敗
         await Promise.all(
-            ASSETS.concat(VENDOR).map(url => cache.add(url).catch(() => {}))
+            ASSETS.map(url => cache.add(url).catch(() => {}))
         );
         self.skipWaiting();
     })());

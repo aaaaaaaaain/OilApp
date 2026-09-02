@@ -1,0 +1,11 @@
+{
+  "appId": "tw.oilapp.fuel",
+  "appName": "油耗紀錄",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

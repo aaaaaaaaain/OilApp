@@ -81,7 +81,29 @@ script.js    全部計算、儲存、圖表、匯出、條碼、主題切換邏�
 fuel.png     App 圖示（512×512）
 manifest.json  PWA 設定：名稱、圖示、全螢幕顯示
 sw.js        Service Worker：離線快取。改版時要同步更新裡面的 CACHE 版號與 ?v=
+vendor/      Chart.js、SheetJS、JsBarcode 的本機副本（不走 CDN，離線才能用）
+build-www.js 把網頁檔案複製到 www/ 給 Capacitor 打包
+android/     Capacitor 產生的 Android 專案
 ```
+
+## Android APK
+
+用 [Capacitor](https://capacitorjs.com/) 把同一份網頁檔案打包成原生 App，
+所有檔案都在 APK 裡，裝好就能離線用，不需要連網也不依賴 GitHub Pages。
+
+第一次需要的環境：Node.js、JDK 17、Android SDK（build-tools 34、platform 34）。
+
+```bash
+npm install
+npm run apk
+```
+
+產出位置：`android/app/build/outputs/apk/debug/app-debug.apk`
+
+把檔案傳到手機安裝即可（Android 會要求允許安裝未知來源的 App）。
+這是 debug 簽章版本，自己用沒問題；要上架 Google Play 才需要另外建立正式簽章金鑰。
+
+> 改版後要重新跑 `npm run apk` 並重新安裝，APK 不會像網頁版那樣自動更新。
 
 ## 技術
 

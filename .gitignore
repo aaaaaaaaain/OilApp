@@ -2,3 +2,16 @@
 Thumbs.db
 node_modules/
 *.log
+
+# Capacitor 打包用的中繼產物，由 npm run build 產生
+www/
+
+# Android 建置產物
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+*.apk
+*.keystore

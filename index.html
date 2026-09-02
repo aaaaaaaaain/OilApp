@@ -11,9 +11,10 @@
     <meta name="apple-mobile-web-app-title" content="油耗記錄">
     <title>油耗 App</title>
 
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <!-- 函式庫改放本機：離線可用，APK 打包也不需要連外 -->
+    <script src="vendor/xlsx.full.min.js?v=25"></script>
+    <script src="vendor/chart.min.js?v=25"></script>
+    <script src="vendor/jsbarcode.all.min.js?v=25"></script>
 
     <!-- 在 CSS 之前先套用存下來的主題，避免開啟瞬間閃一下另一個顏色 -->
     <script>
@@ -24,7 +25,7 @@
     </script>
 
     <!-- ?v= 版本號：改版後手機（尤其是 iOS 主畫面捷徑）才不會繼續用舊的快取檔 -->
-    <link rel="stylesheet" href="style.css?v=24">
+    <link rel="stylesheet" href="style.css?v=25">
 </head>
 <body>
     <div class="header">
@@ -177,7 +178,7 @@
         </div>
     </div>
 
-    <script src="script.js?v=24"></script>
+    <script src="script.js?v=25"></script>
 
     <!-- 離線快取：加油站沒訊號時條碼也開得起來 -->
     <script>
