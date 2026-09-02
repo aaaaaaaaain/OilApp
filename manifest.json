@@ -1,0 +1,28 @@
+{
+  "name": "油耗紀錄",
+  "short_name": "油耗紀錄",
+  "description": "記錄每次加油的里程與公升數，自動算出油耗、油錢與每公里成本。資料只存在裝置上。",
+  "lang": "zh-Hant-TW",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "categories": ["utilities", "productivity"],
+  "icons": [
+    {
+      "src": "fuel.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "fuel.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
