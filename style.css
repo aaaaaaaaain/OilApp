@@ -5,12 +5,11 @@
     /* 淺色模式用 Apple「增加對比」版的系統色，小字才達到 4.5:1 */
     --ios-blue: #0066D6;
     --ios-sep: #C6C6C8;
-    --ios-red: #FF3B30;
+    --ios-red: #D70015;
     --ios-green: #34C759;
     --ios-gray: #6C6C70;
     --ios-pressed: #D1D1D6;   /* 清單列按下去的底色 */
     --diff-up: #1F7A35;
-    --diff-down: #D70015;
     --tag-base: #8A6200;
 
     /* 圓角只用這四級，同一層級的東西圓角一致 */
@@ -35,7 +34,7 @@
         --ios-gray: #8E8E93;
         --ios-pressed: #3A3A3C;
         --diff-up: #34C759;
-        --diff-down: #FF3B30;
+        --ios-red: #FF3B30;
         --tag-base: #FFC947;
         color-scheme: dark;
     }
@@ -51,7 +50,7 @@
     --ios-gray: #8E8E93;
     --ios-pressed: #3A3A3C;
     --diff-up: #34C759;
-    --diff-down: #FF3B30;
+    --ios-red: #FF3B30;
     --tag-base: #FFC947;
     color-scheme: dark;
 }
@@ -135,8 +134,8 @@ h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: 0; 
     color: var(--ios-gray); font-size: 14px;
 }
 
-/* 圖表與明細之間的分隔 */
-.list-title { margin-top: 26px; }
+/* 圖表與明細之間的分隔：要比 .sec-title 的 margin 更具體，否則上方留白會被蓋掉 */
+.sec-title.list-title { margin-top: 26px; }
 
 /* 設定頁分組：組與組之間留白，一眼看得出分界 */
 .settings-group { margin-bottom: 30px; }
@@ -255,7 +254,7 @@ body.in-settings #statsWrap { display: none; }
 /* 與上一筆的增減：色塊比純文字好認 */
 .diff-tag { font-size: 12px; font-weight: 700; padding: 2px 7px; border-radius: var(--r-tag); }
 .diff-up { color: var(--diff-up); background: rgba(52, 199, 89, 0.12); }
-.diff-down { color: var(--diff-down); background: rgba(255, 59, 48, 0.12); }
+.diff-down { color: var(--ios-red); background: rgba(255, 59, 48, 0.12); }
 
 /* 編輯／刪除做成小色塊；外觀不變，用 ::after 把可點範圍撐到約 44px 高 */
 .record-actions { display: flex; gap: 10px; }
