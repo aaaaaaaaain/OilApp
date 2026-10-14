@@ -2,12 +2,25 @@
     --ios-bg: #F2F2F7;
     --ios-card: #FFFFFF;
     --ios-text: #000000;
-    --ios-blue: #007AFF;
+    /* 淺色模式用 Apple「增加對比」版的系統色，小字才達到 4.5:1 */
+    --ios-blue: #0066D6;
     --ios-sep: #C6C6C8;
     --ios-red: #FF3B30;
     --ios-green: #34C759;
-    --ios-gray: #8E8E93;
+    --ios-gray: #6C6C70;
+    --ios-pressed: #D1D1D6;   /* 清單列按下去的底色 */
+    --diff-up: #1F7A35;
+    --diff-down: #D70015;
     --tag-base: #8A6200;
+
+    /* 圓角只用這四級，同一層級的東西圓角一致 */
+    --r-tag: 6px;    /* 標籤 */
+    --r-btn: 8px;    /* 小按鈕、分段選取塊 */
+    --r-ctl: 10px;   /* 分段控制、選單（= 內層 8px + 內距 2px） */
+    --r-card: 12px;  /* 卡片、清單、主按鈕、條碼卡 */
+
+    /* iOS sheet 的曲線：起步快、收尾很長 */
+    --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
     color-scheme: light;
 }
 
@@ -19,6 +32,10 @@
         --ios-text: #FFFFFF;
         --ios-blue: #0A84FF;
         --ios-sep: #38383A;
+        --ios-gray: #8E8E93;
+        --ios-pressed: #3A3A3C;
+        --diff-up: #34C759;
+        --diff-down: #FF3B30;
         --tag-base: #FFC947;
         color-scheme: dark;
     }
@@ -31,12 +48,24 @@
     --ios-text: #FFFFFF;
     --ios-blue: #0A84FF;
     --ios-sep: #38383A;
+    --ios-gray: #8E8E93;
+    --ios-pressed: #3A3A3C;
+    --diff-up: #34C759;
+    --diff-down: #FF3B30;
     --tag-base: #FFC947;
     color-scheme: dark;
 }
 
+html {
+    /* Android 點下去預設會閃一塊色框，回饋改由各元件自己的 :active 負責 */
+    -webkit-tap-highlight-color: transparent;
+    /* 允許雙指放大，但關掉雙擊縮放，點擊才不會有延遲 */
+    touch-action: manipulation;
+}
+
 body {
     font-family: -apple-system, system-ui, "Microsoft JhengHei", sans-serif;
+    font-size: 17px; /* Apple Body */
     background-color: var(--ios-bg);
     margin: 0 auto; padding: 20px; color: var(--ios-text);
     max-width: 560px;
@@ -56,7 +85,8 @@ body::before {
 
 input::-webkit-date-and-time-value { text-align: right; padding-right: 5px; }
 
-h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1px; }
+/* 中文方塊字本身已經填滿字身，負字距會讓筆畫黏在一起，標題維持 0 */
+h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: 0; }
 
 /* 標題列與右上角設定鈕 */
 .header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 20px; }
@@ -65,7 +95,7 @@ h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1p
 
 /* 右上角車輛切換：用原生 select，iOS 會跳出滾輪選單 */
 .vehicle-select {
-    max-width: 116px; padding: 9px 10px; border-radius: 10px;
+    max-width: 116px; height: 44px; padding: 0 12px; border-radius: var(--r-ctl);
     background: var(--ios-card); color: var(--ios-blue);
     border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     font-size: 14px; font-weight: 600; font-family: inherit;
@@ -73,13 +103,28 @@ h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1p
     text-align: center; text-overflow: ellipsis;
 }
 .gear-btn {
-    flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
+    flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%;
     background: var(--ios-card); border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    color: var(--ios-blue); font-size: 19px; line-height: 1; cursor: pointer;
+    color: var(--ios-blue); font-size: 20px; line-height: 1; cursor: pointer;
     font-family: inherit; -webkit-appearance: none; appearance: none;
-    touch-action: manipulation;
 }
-.gear-btn:active { opacity: 0.5; }
+
+/* 按下去的回饋：一按下立刻反應，放開再用 0.2 秒恢復 */
+.gear-btn, .vehicle-select, .sheet-close, .segment, .row-btn,
+.secondary-btn, .danger-btn, .stats-bar, #statsBody,
+.btn, .fab, .link-row, .vehicle-row {
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out, background-color 0.2s ease-out;
+}
+.gear-btn:active, .vehicle-select:active, .sheet-close:active, .segment:active, .row-btn:active,
+.secondary-btn:active, .danger-btn:active, .stats-bar:active, #statsBody:active {
+    opacity: 0.5; transition-duration: 0s;
+}
+/* 實心按鈕改用縮小，變淡會讓藍底看起來像停用 */
+.btn:active { transform: scale(0.97); transition-duration: 0.1s; }
+.fab:active { transform: scale(0.9); transition-duration: 0.1s; }
+/* 清單列照 iOS 的做法：按下是底色變灰，不是整列變淡 */
+.link-row:active, .vehicle-row:active { background-color: var(--ios-pressed); transition-duration: 0s; }
+.vehicle-row:has(.row-btn:active) { background-color: transparent; }
 
 /* 圖表：固定高度，canvas 才有空間撐開（maintainAspectRatio: false） */
 .chart-card { position: relative; box-sizing: border-box; height: 320px; padding: 14px 12px; }
@@ -97,9 +142,10 @@ h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1p
 .settings-group { margin-bottom: 30px; }
 .settings-group .ios-list,
 .settings-group .segmented { margin-bottom: 0; }
-.group-hint { font-size: 12px; color: var(--ios-gray); line-height: 1.5; margin: 8px 4px 0; }
+.group-hint { font-size: 13px; color: var(--ios-gray); line-height: 1.5; margin: 8px 4px 0; }
 
-/* 設定頁的車輛清單 */
+/* 設定頁的車輛清單：整列都能點來改名 */
+.vehicle-row { cursor: pointer; }
 .vehicle-name { color: var(--ios-blue); cursor: pointer; }
 .vehicle-name .tag { margin-left: 6px; }
 .vehicle-count { color: var(--ios-gray); margin-right: 12px; }
@@ -107,7 +153,6 @@ h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1p
 /* 設定頁可點的列 */
 .link-row { cursor: pointer; }
 .link-row label { color: var(--ios-blue); cursor: pointer; }
-.link-row:active { opacity: 0.5; }
 
 /* 設定頁的唯讀欄位值（版本號等） */
 .ios-value { font-size: 17px; color: var(--ios-gray); }
@@ -115,65 +160,84 @@ h1 { font-size: 34px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1p
 /* 設定頁跟油耗數字無關，把統計整塊收起來 */
 body.in-settings #statsWrap { display: none; }
 
+/* 收合區塊：高度用 grid 的 0fr ↔ 1fr 過渡，底下的內容會跟著滑動，不會整塊跳位 */
+.collapse {
+    display: grid; grid-template-rows: 1fr; opacity: 1;
+    transition: grid-template-rows 0.28s var(--ease-ios), opacity 0.2s ease, visibility 0s;
+}
+.collapse > * { min-height: 0; }
+.collapse.closed {
+    grid-template-rows: 0fr; opacity: 0; visibility: hidden;
+    transition: grid-template-rows 0.28s var(--ease-ios), opacity 0.2s ease, visibility 0s linear 0.28s;
+}
+/* 只在收起或動畫途中裁切，平常不裁，卡片陰影才不會被切掉 */
+.collapse.closed > *, .collapse.animating > * { overflow: hidden; }
+
 /* 統計收合 */
 #statsBody { cursor: pointer; }
-#statsBody:active { opacity: 0.6; }
 .stats-bar {
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    background: var(--ios-card); border-radius: 12px; padding: 13px 16px;
+    background: var(--ios-card); border-radius: var(--r-card); padding: 13px 16px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     margin-bottom: 25px; cursor: pointer;
 }
-.stats-bar:active { opacity: 0.6; }
 .stats-bar-main { font-size: 15px; font-weight: 700; color: var(--ios-blue); }
-.stats-bar-sub { font-size: 12px; color: var(--ios-gray); margin-left: 8px; }
-.stats-chevron { flex-shrink: 0; font-size: 12px; color: var(--ios-gray); }
+.stats-bar-sub { font-size: 13px; color: var(--ios-gray); margin-left: 8px; }
+.stats-chevron { flex-shrink: 0; font-size: 12px; color: var(--ios-gray); transition: transform 0.28s var(--ease-ios); }
+/* 展開時摘要列淡出，箭頭同時轉向上，提示內容往哪個方向打開 */
+#statsBarWrap.closed .stats-chevron { transform: rotate(180deg); }
 
 /* 設定頁的分組標題 */
 .sec-title { font-size: 13px; font-weight: 600; color: var(--ios-gray); margin: 0 0 8px 4px; }
 
 /* 統計卡片 */
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 25px; }
-.stat-card { background: var(--ios-card); padding: 12px 8px; border-radius: 12px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.stat-card { background: var(--ios-card); padding: 12px 8px; border-radius: var(--r-card); text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 .stat-card strong { display: block; font-size: 20px; color: var(--ios-blue); }
-.stat-card span { font-size: 11px; color: var(--ios-gray); font-weight: 600; }
+.stat-card span { font-size: 12px; color: var(--ios-gray); font-weight: 600; }
 /* 金額位數多，字級小一號才不會擠出卡片 */
 #costStats .stat-card strong { font-size: 16px; }
 
-/* 分段控制器 */
-.segmented { background: #7676801f; border-radius: 10px; padding: 2px; display: flex; margin-bottom: 25px; }
+/* 分段控制器：白色選取塊是獨立一層，切換時滑過去 */
+.segmented { position: relative; background: #7676801f; border-radius: var(--r-ctl); padding: 2px; display: flex; margin-bottom: 25px; }
+.segment-thumb {
+    position: absolute; top: 2px; bottom: 2px; left: 2px;
+    width: calc((100% - 4px) / var(--seg-n, 2));
+    transform: translateX(calc(var(--seg-i, 0) * 100%));
+    border-radius: var(--r-btn);
+    background: var(--ios-card); box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+    transition: transform 0.3s var(--ease-ios);
+}
 .segment {
-    flex: 1; padding: 8px 0; text-align: center; font-size: 12px; font-weight: 600;
-    cursor: pointer; border-radius: 8px; color: var(--ios-text);
+    position: relative; z-index: 1;
+    flex: 1; padding: 8px 0; text-align: center; font-size: 13px; font-weight: 600;
+    cursor: pointer; border-radius: var(--r-btn); color: var(--ios-text);
     border: none; background: none; font-family: inherit;
     -webkit-appearance: none; appearance: none;
-    touch-action: manipulation;
 }
-.segment.active { background: var(--ios-card); box-shadow: 0 3px 8px rgba(0,0,0,0.12); }
-.segment:active { opacity: 0.6; }
 
 /* 里程輸入模式切換 */
 .mode-switch { margin-bottom: 15px; }
 .mode-hint {
-    font-size: 12px; color: var(--ios-gray); line-height: 1.6;
+    font-size: 13px; color: var(--ios-gray); line-height: 1.6;
     margin: -8px 0 16px; padding: 0 4px;
 }
 .mode-hint b { color: var(--ios-blue); }
 .mode-hint .warn { color: var(--ios-red); }
-.tag { font-size: 11px; color: var(--ios-gray); background: #7676801f; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+.tag { font-size: 12px; color: var(--ios-gray); background: #7676801f; padding: 2px 6px; border-radius: var(--r-tag); white-space: nowrap; }
 
 /* iOS 清單與輸入 */
-.ios-list { background: var(--ios-card); border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+.ios-list { background: var(--ios-card); border-radius: var(--r-card); overflow: hidden; margin-bottom: 20px; }
 .ios-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 0.5px solid var(--ios-sep); }
 .ios-item:last-child { border-bottom: none; }
 .ios-item label { white-space: nowrap; }
 .ios-item input { border: none; background: none; font-size: 17px; color: var(--ios-blue); outline: none; width: 100%; text-align: right; font-family: inherit; }
 
 /* 按鈕樣式 */
-.btn { width: 100%; padding: 16px; border-radius: 14px; background: var(--ios-blue); color: white; border: none; font-size: 17px; font-weight: 600; cursor: pointer; font-family: inherit; }
-.btn:active { opacity: 0.5; }
-.secondary-btn { color: var(--ios-blue); background: none; border: none; width: 100%; padding: 20px; font-size: 16px; cursor: pointer; font-family: inherit; }
-.danger-btn { color: var(--ios-red); background: none; border: none; width: 100%; font-size: 12px; margin-bottom: 30px; cursor: pointer; font-family: inherit; }
+.btn { width: 100%; padding: 16px; border-radius: var(--r-card); background: var(--ios-blue); color: white; border: none; font-size: 17px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.secondary-btn { color: var(--ios-blue); background: none; border: none; width: 100%; padding: 20px; font-size: 17px; cursor: pointer; font-family: inherit; }
+/* 會清掉資料的按鈕更要好點準：至少 44px 高 */
+.danger-btn { color: var(--ios-red); background: none; border: none; width: 100%; min-height: 44px; padding: 14px; font-size: 15px; margin-bottom: 30px; cursor: pointer; font-family: inherit; }
 
 /* 記錄列：左欄可壓縮換行，右欄固定不換行，避免按鈕被擠成兩行 */
 .record-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 14px 16px; border-bottom: 0.5px solid var(--ios-sep); }
@@ -184,31 +248,33 @@ body.in-settings #statsWrap { display: none; }
 /* 右欄由上而下：油耗數字 → 增減 → 操作 */
 .record-side { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; white-space: nowrap; }
 .record-cons { display: flex; align-items: baseline; gap: 5px; }
+/* 大數字是拉丁數字，維持一點負字距 */
 .record-val { font-size: 22px; font-weight: 700; color: var(--ios-blue); font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
-.record-unit { font-size: 10px; font-weight: 600; color: var(--ios-gray); }
+.record-unit { font-size: 12px; font-weight: 600; color: var(--ios-gray); }
 
 /* 與上一筆的增減：色塊比純文字好認 */
-.diff-tag { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 7px; }
-.diff-up { color: var(--ios-green); background: rgba(52, 199, 89, 0.16); }
-.diff-down { color: var(--ios-red); background: rgba(255, 59, 48, 0.16); }
+.diff-tag { font-size: 12px; font-weight: 700; padding: 2px 7px; border-radius: var(--r-tag); }
+.diff-up { color: var(--diff-up); background: rgba(52, 199, 89, 0.12); }
+.diff-down { color: var(--diff-down); background: rgba(255, 59, 48, 0.12); }
 
-/* 編輯／刪除做成小色塊，點擊區比純文字大 */
-.record-actions { display: flex; gap: 6px; }
+/* 編輯／刪除做成小色塊；外觀不變，用 ::after 把可點範圍撐到約 44px 高 */
+.record-actions { display: flex; gap: 10px; }
 .row-btn {
-    border: none; border-radius: 8px; padding: 6px 11px;
+    position: relative;
+    border: none; border-radius: var(--r-btn); padding: 6px 11px;
     background: #7676801f; color: var(--ios-blue);
-    font-family: inherit; font-size: 12px; font-weight: 600;
+    font-family: inherit; font-size: 13px; font-weight: 600;
     cursor: pointer; -webkit-appearance: none; appearance: none;
-    touch-action: manipulation;
 }
+/* 左右各撐 5px，剛好等於按鈕間距的一半，兩顆的可點範圍不會重疊 */
+.row-btn::after { content: ''; position: absolute; top: -8px; bottom: -8px; left: -5px; right: -5px; }
 .row-btn-del { color: var(--ios-red); }
-.row-btn:active { opacity: 0.5; }
 
-.days-tag { font-size: 11px; color: var(--ios-gray); background: #7676801f; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+.days-tag { font-size: 12px; color: var(--ios-gray); background: #7676801f; padding: 2px 6px; border-radius: var(--r-tag); white-space: nowrap; }
 /* 里程／公升／金額／單價各自一格，兩欄排列 */
 .row-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 10px; margin-top: 7px; }
 .fact { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
-.fact-label { flex-shrink: 0; font-size: 10px; font-weight: 600; color: var(--ios-gray); }
+.fact-label { flex-shrink: 0; font-size: 12px; font-weight: 600; color: var(--ios-gray); }
 .fact-val { font-size: 13px; color: var(--ios-text); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
 .row-tags:empty { display: none; }
@@ -226,37 +292,47 @@ body.in-settings #statsWrap { display: none; }
     background: var(--ios-blue); color: #FFFFFF;
     border: none; box-shadow: 0 4px 14px rgba(0,0,0,0.3);
     font-size: 30px; line-height: 1; font-family: inherit;
-    cursor: pointer; touch-action: manipulation;
+    cursor: pointer;
 }
-.fab:active { opacity: 0.6; }
 
-/* 新增紀錄彈出視窗：蓋滿畫面，自己捲動 */
+/* 新增紀錄彈出視窗：蓋滿畫面，自己捲動。
+   從下方滑上來、關閉時沿原路滑回下方；途中再點會從當下位置反向，不必等動畫跑完 */
 .sheet {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 50;
-    display: none; overflow-y: auto;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     background: var(--ios-bg);
     padding: calc(env(safe-area-inset-top) + 16px) 20px calc(env(safe-area-inset-bottom) + 40px);
+    box-shadow: 0 -8px 30px rgba(0,0,0,0.18);
+    visibility: hidden;
+    transform: translateY(100%);
+    transition: transform 0.4s var(--ease-ios), visibility 0s linear 0.4s;
 }
-.sheet.open { display: block; }
+.sheet.open {
+    visibility: visible;
+    transform: none;
+    transition: transform 0.4s var(--ease-ios), visibility 0s;
+}
 .sheet-inner { max-width: 560px; margin: 0 auto; }
 body.sheet-open { overflow: hidden; }
 
 .sheet-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
-.sheet-title { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; min-width: 0; }
+.sheet-title { font-size: 24px; font-weight: 800; letter-spacing: 0; min-width: 0; }
 .sheet-plate { font-size: 13px; font-weight: 600; color: var(--ios-gray); margin-left: 8px; }
 .sheet-close {
-    flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
+    flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%;
     background: var(--ios-card); border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    color: var(--ios-gray); font-size: 24px; line-height: 1;
-    cursor: pointer; font-family: inherit; touch-action: manipulation;
+    color: var(--ios-gray); font-size: 26px; line-height: 1;
+    cursor: pointer; font-family: inherit;
 }
-.sheet-close:active { opacity: 0.5; }
 
-/* 切換動畫 */
+/* 切換動畫：只做進場淡入。離場不做，否則新頁面要多等 0.2 秒才出現 */
 .sec { display: none; }
-.sec.active { display: block; animation: fadeIn 0.3s; }
+.sec.active { display: block; animation: fadeIn 0.2s ease-out; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* 開 App 或還原狀態時直接套用，不跑動畫 */
+.no-anim, .no-anim * { transition: none !important; }
 
 /* 載具條碼輸入 */
 .carrier-input-wrap { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
@@ -269,7 +345,7 @@ body.sheet-open { overflow: hidden; }
 #inlineBarcode { margin-top: 0; margin-bottom: 22px; }
 .barcode-card {
     background: #FFFFFF;
-    border-radius: 16px;
+    border-radius: var(--r-card);
     padding: 24px 16px 18px;
     text-align: center;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
@@ -278,5 +354,15 @@ body.sheet-open { overflow: hidden; }
 .barcode-card svg { max-width: 100%; height: auto; }
 .carrier-code-display {
     font-size: 22px; font-weight: 700; letter-spacing: 4px;
-    color: #000000; margin-top: 10px; font-family: 'Courier New', monospace;
+    color: #000000; margin-top: 10px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* 系統設定「減少動態效果」：滑動改成淡入淡出，高度直接切換 */
+@media (prefers-reduced-motion: reduce) {
+    .sheet { transform: none; opacity: 0; transition: opacity 0.2s ease, visibility 0s linear 0.2s; }
+    .sheet.open { opacity: 1; transition: opacity 0.2s ease, visibility 0s; }
+    .collapse { transition: opacity 0.2s ease, visibility 0s; }
+    .collapse.closed { transition: opacity 0.2s ease, visibility 0s linear 0.2s; }
+    .sec.active { animation: none; }
+    .segment-thumb, .stats-chevron { transition: none; }
 }

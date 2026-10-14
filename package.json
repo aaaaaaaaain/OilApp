@@ -1,6 +1,6 @@
 {
   "name": "oilapp",
-  "version": "1.10.0",
+  "version": "1.12.0",
   "private": true,
   "description": "油耗紀錄 —— 網頁版與 Android APK 共用同一份原始碼",
   "scripts": {

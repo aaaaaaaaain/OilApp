@@ -3,7 +3,7 @@
 // 版本號寫在這支檔案裡，設定頁顯示的就是「實際載入到的版本」。
 // 手機若還顯示舊版本，代表吃到快取，重新整理即可。
 // 改版時請一起更新 index.html 裡 style.css / script.js 的 ?v= 數字。
-const APP_VERSION = '1.11.0';
+const APP_VERSION = '1.12.0';
 let vehicles = [];   // [{ id, plate }]
 let fuelData = {};   // { 車輛 id: [紀錄...] }
 let activeVid = '';  // 目前選到的車輛 id
@@ -15,6 +15,17 @@ let theme = localStorage.getItem('theme') || 'system';       // system = 跟隨�
 let statsOpen = localStorage.getItem('statsOpen') !== '0';   // 統計卡片是否展開，預設展開
 
 const $ = id => document.getElementById(id);
+
+// iOS Safari 要頁面上有 touchstart 監聽，按鈕的 :active 才會在按下的瞬間出現
+document.addEventListener('touchstart', () => {}, { passive: true });
+
+// 直接套用新狀態、不跑 CSS 過渡（開 App、還原上次的收合狀態時用）
+function withoutTransition(el, fn) {
+    el.classList.add('no-anim');
+    fn();
+    void el.offsetHeight; // 先讓新狀態生效，再把過渡開回來
+    el.classList.remove('no-anim');
+}
 
 // 車牌是使用者輸入的，進 innerHTML 前一律轉義
 const esc = s => String(s).replace(/[&<>"']/g, c =>
@@ -153,9 +164,10 @@ function renderVehicleUI() {
     const rows = vehicles.map(v => {
         const n = (fuelData[v.id] || []).length;
         const inUse = v.id === activeVid ? '<span class="tag">使用中</span>' : '';
-        return `<div class="ios-item">
-                <label class="vehicle-name" onclick="renameVehicle('${v.id}')">${esc(v.plate)}${inUse}</label>
-                <span class="ios-value"><span class="vehicle-count">${n} 筆</span><button type="button" class="row-btn row-btn-del" onclick="deleteVehicle('${v.id}')">刪除</button></span>
+        // 整列都能點來改名；刪除鈕要擋住冒泡，否則按刪除也會跳出改名
+        return `<div class="ios-item vehicle-row" onclick="renameVehicle('${v.id}')">
+                <label class="vehicle-name">${esc(v.plate)}${inUse}</label>
+                <span class="ios-value"><span class="vehicle-count">${n} 筆</span><button type="button" class="row-btn row-btn-del" onclick="event.stopPropagation(); deleteVehicle('${v.id}')">刪除</button></span>
             </div>`;
     });
     rows.push('<div class="ios-item link-row" onclick="addVehicle()"><label>新增車輛</label><span class="ios-value">＋</span></div>');
@@ -170,7 +182,7 @@ const round2 = n => Number(n.toFixed(2));
 
 // 初始化：每步驟獨立包起來，CDN 載入失敗時只有該功能失效，不會整個卡住
 function init() {
-    const steps = [showVersion, loadData, renderVehicleUI, setCurrentTime, () => applyTheme(theme), recalc, () => setMode(inputMode), render, applyStatsOpen, loadSavedPrice, updateCostHint, loadSavedCarrier, openAdd];
+    const steps = [showVersion, loadData, renderVehicleUI, setCurrentTime, () => applyTheme(theme), recalc, () => setMode(inputMode), render, applyStatsOpen, loadSavedPrice, updateCostHint, loadSavedCarrier, () => openAdd(true)];
     steps.forEach(step => {
         try { step(); } catch (e) { console.error('初始化步驟失敗:', e); }
     });
@@ -197,12 +209,30 @@ function showVersion() {
 function toggleStats() {
     statsOpen = !statsOpen;
     localStorage.setItem('statsOpen', statsOpen ? '1' : '0');
-    applyStatsOpen();
+    applyStatsOpen(true);
 }
 
-function applyStatsOpen() {
-    $('statsBody').style.display = statsOpen ? '' : 'none';
-    $('statsBar').style.display = statsOpen ? 'none' : '';
+let statsAnimTimer;
+function applyStatsOpen(animate) {
+    const wraps = [$('statsBodyWrap'), $('statsBarWrap')];
+    const apply = () => {
+        $('statsBodyWrap').classList.toggle('closed', !statsOpen);
+        $('statsBarWrap').classList.toggle('closed', statsOpen);
+    };
+    if (animate !== true) return withoutTransition($('statsWrap'), apply);
+
+    // 動畫途中才裁切內容，結束後放開，卡片陰影才不會被切掉
+    wraps.forEach(w => w.classList.add('animating'));
+    apply();
+    clearTimeout(statsAnimTimer);
+    statsAnimTimer = setTimeout(() => wraps.forEach(w => w.classList.remove('animating')), 320);
+}
+
+// 分段控制的選取塊：用 CSS 變數告訴它有幾格、滑到第幾格
+function syncSegment(seg) {
+    const items = [...seg.querySelectorAll('.segment')];
+    seg.style.setProperty('--seg-n', items.length);
+    seg.style.setProperty('--seg-i', Math.max(0, items.findIndex(b => b.classList.contains('active'))));
 }
 
 // 外觀：跟隨系統 / 淺色 / 深色
@@ -217,6 +247,7 @@ function applyTheme(mode) {
     $('themeSystem').classList.toggle('active', theme === 'system');
     $('themeLight').classList.toggle('active', theme === 'light');
     $('themeDark').classList.toggle('active', theme === 'dark');
+    syncSegment($('themeSeg'));
 }
 
 // 里程輸入模式：直接輸入單次里程，或輸入里程表讀數自動相減
@@ -226,6 +257,7 @@ function setMode(mode) {
 
     $('mode0').classList.toggle('active', inputMode === 'trip');
     $('mode1').classList.toggle('active', inputMode === 'odo');
+    syncSegment($('modeSeg'));
     $('rowDistance').style.display = inputMode === 'trip' ? '' : 'none';
     $('rowOdo').style.display = inputMode === 'odo' ? '' : 'none';
     $('odoHint').style.display = inputMode === 'odo' ? '' : 'none';
@@ -378,9 +410,22 @@ function toggleSettings() {
 }
 
 // 新增紀錄的彈出視窗
-function openAdd() {
+// 關閉時等滑出畫面才清空表單；這段時間內又打開或按編輯，就先把清空做完
+let sheetResetTimer = null;
+function flushSheetReset() {
+    if (sheetResetTimer === null) return;
+    clearTimeout(sheetResetTimer);
+    sheetResetTimer = null;
+    resetForm();
+}
+
+// instant：開 App 時直接蓋上，條碼要立刻能掃，不跑滑入動畫
+function openAdd(instant) {
+    flushSheetReset();
+    const sheet = $('addSheet');
     $('sheetPlate').innerText = activePlate();
-    $('addSheet').classList.add('open');
+    if (instant === true) withoutTransition(sheet, () => sheet.classList.add('open'));
+    else sheet.classList.add('open');
     document.body.classList.add('sheet-open');
 
     renderInlineBarcode(); // 條碼放最上面，一打開就能給店員掃
@@ -392,7 +437,12 @@ function openAdd() {
 function closeAdd() {
     $('addSheet').classList.remove('open');
     document.body.classList.remove('sheet-open');
-    resetForm(); // 關掉等於放棄這次輸入／編輯
+    // 關掉等於放棄這次輸入／編輯；滑出途中先不清，免得看到欄位被清空
+    clearTimeout(sheetResetTimer);
+    sheetResetTimer = setTimeout(() => {
+        sheetResetTimer = null;
+        resetForm();
+    }, 400);
 }
 
 // 儲存
@@ -558,6 +608,7 @@ function render() {
 
 // 編輯與刪除
 function editRecord(i) {
+    flushSheetReset(); // 剛關掉視窗還沒清空時，先清完再填，免得之後被清掉
     const r = records[i];
     $('date').value = r.d;
     $('time').value = r.t || '00:00';
@@ -610,6 +661,8 @@ function ensureChart() {
     if (!$('chart').offsetParent) return null;     // 分頁還藏著，等切過來再說
 
     const c = chartColors();
+    // 系統開了「減少動態效果」就不播圖表的生長動畫
+    const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     chart = new Chart($('chart').getContext('2d'), {
         type: 'line',
@@ -643,6 +696,7 @@ function ensureChart() {
             ]
         },
         options: {
+            ...(reduceMotion ? { animation: false } : {}),
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             plugins: {

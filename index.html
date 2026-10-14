@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <link rel="apple-touch-icon" href="fuel.png">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#000000">
@@ -12,9 +12,9 @@
     <title>油耗 App</title>
 
     <!-- 函式庫改放本機：離線可用，APK 打包也不需要連外 -->
-    <script src="vendor/xlsx.full.min.js?v=25"></script>
-    <script src="vendor/chart.min.js?v=25"></script>
-    <script src="vendor/jsbarcode.all.min.js?v=25"></script>
+    <script src="vendor/xlsx.full.min.js?v=26"></script>
+    <script src="vendor/chart.min.js?v=26"></script>
+    <script src="vendor/jsbarcode.all.min.js?v=26"></script>
 
     <!-- 在 CSS 之前先套用存下來的主題，避免開啟瞬間閃一下另一個顏色 -->
     <script>
@@ -25,7 +25,7 @@
     </script>
 
     <!-- ?v= 版本號：改版後手機（尤其是 iOS 主畫面捷徑）才不會繼續用舊的快取檔 -->
-    <link rel="stylesheet" href="style.css?v=25">
+    <link rel="stylesheet" href="style.css?v=26">
 </head>
 <body>
     <div class="header">
@@ -38,14 +38,17 @@
 
     <div id="statsWrap">
         <!-- 收合後只留這一行，條碼與表單就能往上移 -->
-        <div id="statsBar" class="stats-bar" style="display:none" onclick="toggleStats()">
+        <div id="statsBarWrap" class="collapse closed"><div>
+        <div id="statsBar" class="stats-bar" onclick="toggleStats()">
             <div>
                 <span class="stats-bar-main" id="statsBarMain">--</span>
                 <span class="stats-bar-sub" id="statsBarSub"></span>
             </div>
             <span class="stats-chevron">&#9662;</span>
         </div>
+        </div></div>
 
+        <div id="statsBodyWrap" class="collapse"><div>
         <div id="statsBody" onclick="toggleStats()">
             <div class="stats-grid">
                 <div class="stat-card"><strong id="avgVal">0.00</strong><span>平均 km/L</span></div>
@@ -59,6 +62,7 @@
                 <div class="stat-card"><strong id="costPerKmVal">--</strong><span>每公里成本</span></div>
             </div>
         </div>
+        </div></div>
     </div>
 
     <!-- 主頁：圖表與歷史明細放在一起 -->
@@ -87,6 +91,7 @@
         <div class="settings-group">
             <div class="sec-title">外觀</div>
             <div class="segmented" id="themeSeg">
+                <span class="segment-thumb"></span>
                 <button type="button" class="segment" id="themeSystem" onclick="applyTheme('system')">跟隨系統</button>
                 <button type="button" class="segment" id="themeLight" onclick="applyTheme('light')">淺色</button>
                 <button type="button" class="segment" id="themeDark" onclick="applyTheme('dark')">深色</button>
@@ -156,7 +161,8 @@
             </div>
         </div>
 
-        <div class="segmented mode-switch">
+        <div class="segmented mode-switch" id="modeSeg">
+            <span class="segment-thumb"></span>
             <button type="button" class="segment active" id="mode0" onclick="setMode('trip')">直接輸入里程</button>
             <button type="button" class="segment" id="mode1" onclick="setMode('odo')">總公里數計算</button>
         </div>
@@ -178,7 +184,7 @@
         </div>
     </div>
 
-    <script src="script.js?v=25"></script>
+    <script src="script.js?v=26"></script>
 
     <!-- 離線快取：加油站沒訊號時條碼也開得起來 -->
     <script>
