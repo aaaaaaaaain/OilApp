@@ -222,7 +222,6 @@ body.in-settings #statsWrap { display: none; }
     margin: -8px 0 16px; padding: 0 4px;
 }
 .mode-hint b { color: var(--ios-blue); }
-.mode-hint .warn { color: var(--ios-red); }
 .tag { font-size: 12px; color: var(--ios-gray); background: #7676801f; padding: 2px 6px; border-radius: var(--r-tag); white-space: nowrap; }
 
 /* iOS 清單與輸入 */
@@ -231,6 +230,15 @@ body.in-settings #statsWrap { display: none; }
 .ios-item:last-child { border-bottom: none; }
 .ios-item label { white-space: nowrap; }
 .ios-item input { border: none; background: none; font-size: 17px; color: var(--ios-blue); outline: none; width: 100%; text-align: right; font-family: inherit; }
+
+/* 欄位驗證：錯誤訊息接在該列底下，標籤一起變紅，一眼看得出是哪一格 */
+.ios-item.has-error { border-bottom: none; padding-bottom: 6px; }
+.ios-item.has-error label { color: var(--ios-red); }
+.field-error {
+    padding: 0 16px 12px; font-size: 13px; line-height: 1.4; color: var(--ios-red);
+    border-bottom: 0.5px solid var(--ios-sep);
+}
+.field-error:last-child { border-bottom: none; }
 
 /* 按鈕樣式 */
 .btn { width: 100%; padding: 16px; border-radius: var(--r-card); background: var(--ios-blue); color: white; border: none; font-size: 17px; font-weight: 600; cursor: pointer; font-family: inherit; }

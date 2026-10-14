@@ -3,7 +3,7 @@
 // 版本號寫在這支檔案裡，設定頁顯示的就是「實際載入到的版本」。
 // 手機若還顯示舊版本，代表吃到快取，重新整理即可。
 // 改版時請一起更新 index.html 裡 style.css / script.js 的 ?v= 數字。
-const APP_VERSION = '1.12.1';
+const APP_VERSION = '1.13.0';
 let vehicles = [];   // [{ id, plate }]
 let fuelData = {};   // { 車輛 id: [紀錄...] }
 let activeVid = '';  // 目前選到的車輛 id
@@ -13,6 +13,7 @@ let chartRows = []; // 圖上每個點對應的原始紀錄，tooltip 要用
 let inputMode = localStorage.getItem('inputMode') || 'trip'; // trip = 直接輸入里程, odo = 總公里數相減
 let theme = localStorage.getItem('theme') || 'system';       // system = 跟隨系統, light = 淺色, dark = 深色
 let statsOpen = localStorage.getItem('statsOpen') !== '0';   // 統計卡片是否展開，預設展開
+const touched = new Set(); // 新增表單裡已經檢查過的欄位，錯誤訊息只出現在這些欄位
 
 const $ = id => document.getElementById(id);
 
@@ -182,7 +183,7 @@ const round2 = n => Number(n.toFixed(2));
 
 // 初始化：每步驟獨立包起來，CDN 載入失敗時只有該功能失效，不會整個卡住
 function init() {
-    const steps = [showVersion, loadData, renderVehicleUI, setCurrentTime, () => applyTheme(theme), recalc, () => setMode(inputMode), render, applyStatsOpen, loadSavedPrice, updateCostHint, loadSavedCarrier, () => openAdd(true)];
+    const steps = [showVersion, loadData, renderVehicleUI, setCurrentTime, () => applyTheme(theme), recalc, () => setMode(inputMode), render, applyStatsOpen, loadSavedPrice, updateCostHint, loadSavedCarrier, bindFieldValidation, () => openAdd(true)];
     steps.forEach(step => {
         try { step(); } catch (e) { console.error('初始化步驟失敗:', e); }
     });
@@ -261,6 +262,7 @@ function setMode(mode) {
     $('rowDistance').style.display = inputMode === 'trip' ? '' : 'none';
     $('rowOdo').style.display = inputMode === 'odo' ? '' : 'none';
     $('odoHint').style.display = inputMode === 'odo' ? '' : 'none';
+    clearFieldError(inputMode === 'trip' ? 'odo' : 'distance'); // 藏起來的欄位不留錯誤
 
     updateOdoHint();
 }
@@ -300,9 +302,8 @@ function updateOdoHint() {
 
     let html = `上次總公里數：<b>${prev.odo} km</b>（${prev.d}）`;
     if (!isNaN(odo)) {
-        if (odo <= prev.odo) {
-            html += `<br><span class="warn">總公里數必須大於 ${prev.odo}</span>`;
-        } else {
+        // 數字太小的錯誤顯示在總公里數欄位底下，這裡只在數字合理時試算
+        if (odo > prev.odo) {
             const km = Number((odo - prev.odo).toFixed(1));
             html += `<br>行駛里程：<b>${km} km</b>`;
             if (!isNaN(l) && l > 0) html += `　油耗：<b>${(km / l).toFixed(2)} km/L</b>`;
@@ -456,9 +457,11 @@ function save() {
     const price = parseFloat($('price').value);
     const idx = parseInt($('editIdx').value, 10);
 
-    if (!d || !t || isNaN(l) || l <= 0) return alert('請正確輸入日期、時間與公升數');
-    if ($('cost').value.trim() !== '' && (isNaN(cost) || cost <= 0)) return alert('金額請填大於 0 的數字，或留空不填');
-    if ($('price').value.trim() !== '' && (isNaN(price) || price <= 0)) return alert('單價請填大於 0 的數字，或留空不填');
+    // 按儲存時檢查全部欄位，錯誤直接標在欄位底下，並帶到第一個有問題的欄位
+    const fields = activeFields();
+    fields.forEach(id => touched.add(id));
+    const bad = fields.filter(id => !validateField(id));
+    if (bad.length) return focusField(bad[0]);
 
     // 記住這次的單價，下次開 App 直接帶入
     if (!isNaN(price) && price > 0) localStorage.setItem('unitPrice', price);
@@ -467,13 +470,9 @@ function save() {
 
     let entry;
     if (inputMode === 'odo') {
-        if (isNaN(odo)) return alert('請輸入現在的總公里數');
-        const prev = prevOdoRecord(d, t, idx);
-        if (prev && odo <= prev.odo) return alert(`總公里數必須大於上次的 ${prev.odo} km`);
         // km / cons 由 recalc() 依「現在總公里數 − 上次總公里數」算出
         entry = { d, t, l, cost: costVal, odo, km: null, cons: null };
     } else {
-        if (isNaN(km) || km <= 0) return alert('請正確輸入里程');
         entry = { d, t, l, cost: costVal, km, cons: Number((km / l).toFixed(2)) };
     }
 
@@ -489,6 +488,106 @@ function save() {
     tab(0); // 跳到明細頁
 }
 
+// 表單驗證：錯誤訊息直接顯示在欄位底下，不跳 alert。
+// 第一次檢查發生在離開有填東西的欄位、或按儲存時；之後一改對就立刻消失。
+// 打字途中不會冒出新錯誤，免得還沒打完就被說錯。
+const FORM_FIELDS = ['date', 'time', 'distance', 'odo', 'liters', 'price', 'cost'];
+
+function activeFields() {
+    return ['date', 'time', inputMode === 'trip' ? 'distance' : 'odo', 'liters', 'price', 'cost'];
+}
+
+// 回傳錯誤訊息，沒問題回傳空字串
+function fieldError(id) {
+    const el = $(id);
+    const v = el.value.trim();
+    const n = parseFloat(v);
+    // type=number 打了非數字（例如 1.2.3）時 value 會是空字串，要看 badInput 才抓得到
+    if (el.validity && el.validity.badInput) return '請輸入數字';
+    switch (id) {
+        case 'date': return v ? '' : '請選擇日期';
+        case 'time': return v ? '' : '請選擇時間';
+        case 'distance': return n > 0 ? '' : '請輸入大於 0 的里程';
+        case 'liters': return n > 0 ? '' : '請輸入大於 0 的公升數';
+        case 'price': return v === '' || n > 0 ? '' : '單價要大於 0，或留空不填';
+        case 'cost': return v === '' || n > 0 ? '' : '金額要大於 0，或留空不填';
+        case 'odo': {
+            if (isNaN(n)) return '請輸入現在的總公里數';
+            const prev = prevOdoRecord($('date').value, $('time').value, parseInt($('editIdx').value, 10));
+            return prev && n <= prev.odo ? `必須大於上次的 ${prev.odo} km` : '';
+        }
+    }
+    return '';
+}
+
+function showFieldError(id, msg) {
+    const el = $(id);
+    const row = el.closest('.ios-item');
+    let err = $('err-' + id);
+    if (msg && !err) {
+        // 錯誤訊息是欄位列的下一個兄弟元素，分隔線改畫在它底下
+        err = document.createElement('div');
+        err.id = 'err-' + id;
+        err.className = 'field-error';
+        err.setAttribute('role', 'alert');
+        row.insertAdjacentElement('afterend', err);
+    }
+    row.classList.toggle('has-error', !!msg);
+    if (msg) {
+        err.textContent = msg;
+        el.setAttribute('aria-invalid', 'true');
+        el.setAttribute('aria-describedby', err.id);
+    } else {
+        if (err) err.remove();
+        el.removeAttribute('aria-invalid');
+        el.removeAttribute('aria-describedby');
+    }
+}
+
+function validateField(id) {
+    const msg = fieldError(id);
+    showFieldError(id, msg);
+    return !msg;
+}
+
+function clearFieldError(id) {
+    touched.delete(id);
+    showFieldError(id, '');
+}
+
+function clearAllFieldErrors() {
+    FORM_FIELDS.forEach(clearFieldError);
+}
+
+// 捲到有問題的欄位；數字欄位順便叫出鍵盤，日期時間不自動打開選擇器
+function focusField(id) {
+    const el = $(id);
+    const smooth = !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    el.closest('.ios-item').scrollIntoView({ block: 'center', behavior: smooth ? 'smooth' : 'auto' });
+    if (el.type === 'number') el.focus({ preventScroll: true });
+}
+
+function bindFieldValidation() {
+    FORM_FIELDS.forEach(id => {
+        const el = $(id);
+        // 打字途中只負責「改對了就把錯誤收掉」
+        el.addEventListener('input', () => {
+            if ($('err-' + id) && !fieldError(id)) showFieldError(id, '');
+        });
+        // 離開欄位：有填東西才檢查，空著直接跳過的欄位等按儲存再說
+        el.addEventListener('blur', () => {
+            const empty = el.value.trim() === '' && !(el.validity && el.validity.badInput);
+            if (empty && !touched.has(id)) return;
+            touched.add(id);
+            validateField(id);
+        });
+    });
+    // 改日期時間會換掉「上一筆總公里數」，總公里數要重新比對
+    ['date', 'time'].forEach(id => $(id).addEventListener('change', () => {
+        if (touched.has('odo') && inputMode === 'odo') validateField('odo');
+    }));
+}
+
 function resetForm() {
     $('editIdx').value = '-1';
     $('liters').value = '';
@@ -498,6 +597,7 @@ function resetForm() {
     $('price').value = '';
     loadSavedPrice();
     $('cancelEditBtn').style.display = 'none';
+    clearAllFieldErrors();
     setCurrentTime();
     updateOdoHint();
     updateCostHint();
@@ -609,6 +709,7 @@ function render() {
 // 編輯與刪除
 function editRecord(i) {
     flushSheetReset(); // 剛關掉視窗還沒清空時，先清完再填，免得之後被清掉
+    clearAllFieldErrors();
     const r = records[i];
     $('date').value = r.d;
     $('time').value = r.t || '00:00';

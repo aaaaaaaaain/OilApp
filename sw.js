@@ -1,18 +1,18 @@
 // Service Worker：讓 App 離線也能開，加油站沒訊號時條碼照樣掃得到。
 // 改版時把 CACHE 換成新版號，舊快取會在 activate 時清掉。
-const CACHE = 'oilapp-1.12.1';
+const CACHE = 'oilapp-1.13.0';
 
 // 版號要跟 index.html 裡的 ?v= 一致，否則會快取到對不上的檔案
 const ASSETS = [
     './',
     './index.html',
-    './style.css?v=27',
-    './script.js?v=27',
+    './style.css?v=28',
+    './script.js?v=28',
     './manifest.json',
     './fuel.png',
-    './vendor/xlsx.full.min.js?v=27',
-    './vendor/chart.min.js?v=27',
-    './vendor/jsbarcode.all.min.js?v=27'
+    './vendor/xlsx.full.min.js?v=28',
+    './vendor/chart.min.js?v=28',
+    './vendor/jsbarcode.all.min.js?v=28'
 ];
 
 self.addEventListener('install', event => {
